@@ -240,21 +240,34 @@
       `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดประวัติอาหารไม่สำเร็จ: ${err.message}</div>`;
   });
 
-  function updateSummary(entries) {
-    const total = entries.reduce((s, e) => s + (e.calories || 0), 0);
-    document.getElementById('todayCalories').textContent = total.toLocaleString();
-    const pct = Math.min(100, (total / calorieGoal) * 100);
-    document.getElementById('calorieBar').style.width = pct + '%';
-    const alertEl = document.getElementById('calorieAlert');
-    if (total >= calorieGoal && calorieGoal > 0) {
-      alertEl.textContent = 'แคลอรี่วันนี้เต็มแล้ว';
-      alertEl.classList.remove('hidden');
-      notifyCalorieGoalReached(total);
-    } else {
-      alertEl.classList.add('hidden');
-    }
-    saveDailyCalorieSummary(total);
+function updateSummary(entries) {
+  const total = entries.reduce((s, e) => s + (e.calories || 0), 0);
+  document.getElementById('todayCalories').textContent = total.toLocaleString();
+  const pct = Math.min(100, (total / calorieGoal) * 100);
+  document.getElementById('calorieBar').style.width = pct + '%';
+
+  // 🎨 เปลี่ยนสี bar ตามระดับ
+  const bar = document.getElementById('calorieBar');
+  if (pct >= 100) {
+    bar.className = 'bg-red-400 rounded-full h-2 transition-all duration-500';
+  } else if (pct >= 85) {
+    bar.className = 'bg-orange-300 rounded-full h-2 transition-all duration-500';
+  } else if (pct >= 60) {
+    bar.className = 'bg-yellow-300 rounded-full h-2 transition-all duration-500';
+  } else {
+    bar.className = 'bg-white rounded-full h-2 transition-all duration-500';
   }
+
+  const alertEl = document.getElementById('calorieAlert');
+  if (total >= calorieGoal && calorieGoal > 0) {
+    alertEl.textContent = 'แคลอรี่วันนี้เต็มแล้ว';
+    alertEl.classList.remove('hidden');
+    notifyCalorieGoalReached(total);
+  } else {
+    alertEl.classList.add('hidden');
+  }
+  saveDailyCalorieSummary(total);
+}
 
   async function saveDailyCalorieSummary(total) {
     try {
