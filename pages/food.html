@@ -200,7 +200,14 @@
   if (!session) await new Promise(() => {});
 
   const uid = session.uid;
-  document.getElementById('userAvatar').textContent = session.avatar || '👦🏻';
+
+  const av = session.avatar || '';
+  const avatarEl = document.getElementById('userAvatar');
+  if (av.startsWith('http') || av.startsWith('data:')) {
+    avatarEl.innerHTML = `<img src="${av}" class="w-full h-full object-cover rounded-full">`;
+  } else {
+    avatarEl.textContent = av || '👦🏻';
+  }
 
   let selectedMeal = 'เช้า';
   let selectedFile = null;
