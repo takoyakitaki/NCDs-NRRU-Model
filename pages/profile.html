@@ -224,7 +224,7 @@
     document.getElementById('profilePhone').textContent = d.phone ? `📱 ${d.phone}` : '–';
     document.getElementById('walletPoints').textContent = (d.wallet || 0).toLocaleString();
     document.getElementById('totalPoints').textContent = (d.wallet || 0).toLocaleString();
-    document.getElementById('walletDisplay').textContent = (d.wallet || 0).toLocaleString();
+    // walletDisplay ถูกลบออกพร้อม Rewards section แล้ว — ไม่ต้อง set
 
     // ข้อมูลส่วนตัว
     document.getElementById('infoBirthDate').textContent = toBE(d.birthDate);
