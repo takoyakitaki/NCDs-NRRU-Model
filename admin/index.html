@@ -86,34 +86,48 @@
 
 <script type="module">
   import { db, ADMIN_UIDS } from '../lib/firebase.js';
-  import { getSession, saveSession } from '../lib/auth.js';
+  import { getSession } from '../lib/auth.js';
   import {
     collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, getDoc
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
+  // ── FIX: HTML-escape ทุกค่าที่มาจากผู้ใช้ก่อนใส่ลงไปใน innerHTML ──
+  // ป้องกัน Stored XSS: displayName / email / title / desc / image / icon ฯลฯ
+  // ล้วนเป็นข้อมูลที่ผู้ใช้ทั่วไปกรอกเองได้ (เช่นตอนสมัครผ่านหน้า login)
+  // ถ้าไม่ escape คนร้ายตั้งชื่อเป็น <img src=x onerror=...> แล้วรันสคริปต์ใน
+  // หน้า admin panel ได้ทันที (อันตรายมากเพราะหน้านี้มีสิทธิ์ลบ/แก้ข้อมูลทั้งระบบ)
+  const escapeHtml = (val) => {
+    const str = val === null || val === undefined ? '–' : (typeof val === 'object' ? JSON.stringify(val) : String(val));
+    return str.replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  };
+
   // Check admin status
   const session = getSession();
   const isAdmin = session?.uid && ADMIN_UIDS.includes(session.uid);
-    
+
   // Store admin status in sessionStorage for other pages
   if (session?.uid) {
     sessionStorage.setItem('vv_isAdmin', isAdmin);
-    console.log(`%c🔐 User: ${session.uid.substring(0,8)}... | Admin: ${isAdmin}`, 
+    console.log(`%c🔐 User: ${session.uid.substring(0,8)}... | Admin: ${isAdmin}`,
       isAdmin ? 'color:green;font-weight:bold' : 'color:orange;font-weight:bold');
   }
-    
+
   document.getElementById('adminStatus').textContent = isAdmin ? '✅ Admin' : '❌ ไม่มีสิทธิ์';
   document.getElementById('adminStatus').className   = isAdmin
     ? 'text-sm font-bold text-green-600'
     : 'text-sm font-bold text-red-500';
-      
+
+  // ── FIX: ไม่เปิดเผยรายชื่อ ADMIN_UIDS ให้คนที่ไม่ใช่ admin เห็น ──
+  // เดิมหน้านี้ print ทั้ง array ของ admin UID ออกมาตรงๆ ทำให้ผู้ใช้ทั่วไป
+  // (ที่ login แล้วแต่ไม่ใช่ admin) รู้ว่า UID ไหนเป็น admin บ้าง ซึ่งเป็น
+  // ข้อมูลอ่อนไหวที่ไม่ควรหลุดออกไปฝั่ง client โดยไม่จำเป็น
   if (!isAdmin && session?.uid) {
     document.getElementById('sectionContent').innerHTML = `
       <div class="bg-red-50 border border-red-200 rounded-lg p-6">
         <p class="text-red-600 font-bold text-lg mb-2">❌ ไม่มีสิทธิ์เข้าถึง Admin Panel</p>
-        <p class="text-red-500 text-sm mb-3">UID ของคุณ: <code class="bg-red-100 px-2 py-1 rounded">${session.uid}</code></p>
-        <p class="text-red-500 text-sm mb-2">Admin UIDs ที่ได้รับอนุญาต:</p>
-        <code class="bg-red-100 px-2 py-1 rounded text-sm block mb-3">${JSON.stringify(ADMIN_UIDS)}</code>
+        <p class="text-red-500 text-sm mb-3">UID ของคุณ: <code class="bg-red-100 px-2 py-1 rounded">${escapeHtml(session.uid)}</code></p>
         <p class="text-red-500 text-xs">หากคุณควรเป็น admin โปรดติดต่อผู้ดูแลระบบ</p>
       </div>
     `;
@@ -181,7 +195,7 @@
         </div>
       `;
     } catch (err) {
-      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${err.message}</p>`;
+      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
     }
   };
 
@@ -230,7 +244,7 @@
         renderTable(section, docs);
       }
     } catch (err) {
-      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${err.message}</p>`;
+      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
     }
   };
 
@@ -240,13 +254,13 @@
       <p class="text-sm font-bold text-gray-600">${missions.length} ภารกิจ</p>
       <button onclick="openMissionModal()" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg">➕ เพิ่ม</button>
     </div><div class="space-y-2">`;
-    
+
     missions.forEach(m => {
       html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start">
         <div>
-          <p class="font-bold text-gray-800"><span class="text-lg">${m.icon || '🏆'}</span> ${m.title}</p>
-          <p class="text-xs text-gray-600 mt-1">${m.desc || ''}</p>
-          <p class="text-sm font-bold text-blue-600 mt-2">⭐ ${m.points} แต้ม</p>
+          <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(m.icon || '🏆')}</span> ${escapeHtml(m.title)}</p>
+          <p class="text-xs text-gray-600 mt-1">${escapeHtml(m.desc || '')}</p>
+          <p class="text-sm font-bold text-blue-600 mt-2">⭐ ${escapeHtml(m.points)} แต้ม</p>
         </div>
         <div class="flex gap-2">
           <button onclick="editMission('${m._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️ แก้ไข</button>
@@ -264,13 +278,13 @@
       <p class="text-sm font-bold text-gray-600">${rewards.length} รางวัล</p>
       <button onclick="openRewardModal()" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg">➕ เพิ่ม</button>
     </div><div class="space-y-2">`;
-    
+
     rewards.forEach(r => {
       html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start">
         <div>
-          <p class="font-bold text-gray-800"><span class="text-lg">${r.image || '🎁'}</span> ${r.title}</p>
-          <p class="text-xs text-gray-600 mt-1">${r.description || ''}</p>
-          <p class="text-sm font-bold text-pink-600 mt-2">💰 ต้องใช้ ${r.points} แต้ม</p>
+          <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(r.image || '🎁')}</span> ${escapeHtml(r.title)}</p>
+          <p class="text-xs text-gray-600 mt-1">${escapeHtml(r.description || '')}</p>
+          <p class="text-sm font-bold text-pink-600 mt-2">💰 ต้องใช้ ${escapeHtml(r.points)} แต้ม</p>
         </div>
         <div class="flex gap-2">
           <button onclick="editReward('${r._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️ แก้ไข</button>
@@ -287,15 +301,17 @@
     const cols = Object.keys(docs[0]).filter(k=>k!=='_id');
     let html = `<div class="flex justify-between items-center mb-3">
       <p class="text-sm font-bold text-gray-600">${docs.length} รายการ</p>
-    </div><div class="overflow-x-auto"><table><thead><tr><th>#</th>${cols.map(c=>`<th>${c}</th>`).join('')}<th>Action</th></tr></thead><tbody>`;
+    </div><div class="overflow-x-auto"><table><thead><tr><th>#</th>${cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}<th>Action</th></tr></thead><tbody>`;
 
     docs.forEach((d,i) => {
       html += `<tr>
         <td class="text-gray-400">${i+1}</td>
         ${cols.map(c=>{
           const v = d[c];
-          const str = typeof v === 'object' ? JSON.stringify(v) : String(v??'–');
-          return `<td class="max-w-xs truncate" title="${str}">${str.length>80?str.slice(0,80)+'…':str}</td>`;
+          const raw = typeof v === 'object' ? JSON.stringify(v) : String(v??'–');
+          const display = raw.length>80 ? raw.slice(0,80)+'…' : raw;
+          // FIX: escape ทั้ง title และเนื้อหาที่แสดง กัน XSS จากข้อมูลผู้ใช้
+          return `<td class="max-w-xs truncate" title="${escapeHtml(raw)}">${escapeHtml(display)}</td>`;
         }).join('')}
         <td><button onclick="deleteRow('${section}','${d._id}')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑 ลบ</button></td>
       </tr>`;
@@ -327,18 +343,21 @@
     document.getElementById('rewardModal').classList.add('hidden');
   };
 
+  // ── FIX: ใช้ getDoc(doc(db,'rewards',id)) ดึงเอกสารเดียวตรงๆ ──
+  // เดิมโหลดทั้ง collection แล้วค่อย find() เปลือง read quota และช้าลงเรื่อยๆ
+  // เมื่อจำนวนรางวัลเพิ่มขึ้น
   window.editReward = async (id) => {
     editingRewardId = id;
     try {
-      const snap = await getDocs(collection(db, 'rewards'));
-      const reward = snap.docs.find(d => d.id === id)?.data();
-      if (!reward) return showToast('ไม่พบรางวัล', 'error');
-      
+      const snap = await getDoc(doc(db, 'rewards', id));
+      if (!snap.exists()) return showToast('ไม่พบรางวัล', 'error');
+      const reward = snap.data();
+
       document.getElementById('rewardModalTitle').textContent = '✏️ แก้ไขรางวัล';
-      document.getElementById('rTitle').value = reward.title;
-      document.getElementById('rPoints').value = reward.points;
-      document.getElementById('rImage').value = reward.image;
-      document.getElementById('rDesc').value = reward.description;
+      document.getElementById('rTitle').value = reward.title ?? '';
+      document.getElementById('rPoints').value = reward.points ?? '';
+      document.getElementById('rImage').value = reward.image ?? '';
+      document.getElementById('rDesc').value = reward.description ?? '';
       document.getElementById('rewardModal').classList.remove('hidden');
     } catch (err) {
       showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
@@ -351,10 +370,10 @@
     const image = document.getElementById('rImage').value.trim();
     const desc  = document.getElementById('rDesc').value.trim();
     if (!title || !pts) return showToast('กรุณากรอก ชื่อ และ แต้ม', 'error');
-    
+
     try {
       const data = { title, points: pts, image, description: desc };
-      
+
       if (editingRewardId) {
         await updateDoc(doc(db, 'rewards', editingRewardId), data);
         showToast('อัปเดตรางวัลสำเร็จ', 'success');
@@ -406,10 +425,10 @@
           const access = user.bodyStatsAccess || {};
           html += `
             <div class="grid grid-cols-1 md:grid-cols-[1.1fr_1.1fr_1fr_2fr_auto] gap-3 items-center bg-white border border-gray-100 p-3 rounded-lg">
-              <span class="font-bold text-gray-800">${user.displayName || 'Unknown'}</span>
-              <span class="text-sm text-gray-600">${user.email || user.lineUid || '–'}</span>
+              <span class="font-bold text-gray-800">${escapeHtml(user.displayName || 'Unknown')}</span>
+              <span class="text-sm text-gray-600">${escapeHtml(user.email || user.lineUid || '–')}</span>
               <span class="flex items-center gap-2">
-                <input type="checkbox" id="rec_${user.id}" ${recordingEnabled ? 'checked' : ''} 
+                <input type="checkbox" id="rec_${user.id}" ${recordingEnabled ? 'checked' : ''}
                   onchange="toggleHealthRecording('${user.id}', this.checked)"
                   class="w-4 h-4 rounded cursor-pointer">
                 <span class="text-xs ${recordingEnabled ? 'text-green-600 font-bold' : 'text-gray-400'}">${recordingEnabled ? '✓ Enabled' : '✗ Disabled'}</span>
@@ -460,7 +479,7 @@
 
       el.innerHTML = html;
     } catch (err) {
-      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${err.message}</p>`;
+      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
     }
   };
 
@@ -501,7 +520,7 @@
 
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
-      const user = userDoc.data();
+      const user = userDoc.data() || {};
 
       // Get body stats
       const bodyStatsSnap = await getDocs(query(
@@ -522,8 +541,8 @@
           <div class="bg-white border border-gray-200 rounded-lg p-4">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="font-black text-gray-800">${user.displayName || 'Unknown User'}</h3>
-                <p class="text-xs text-gray-500">${user.email}</p>
+                <h3 class="font-black text-gray-800">${escapeHtml(user.displayName || 'Unknown User')}</h3>
+                <p class="text-xs text-gray-500">${escapeHtml(user.email || '–')}</p>
               </div>
               <button onclick="loadHealthRecording()" class="bg-gray-500 hover:bg-gray-600 text-white text-xs font-bold px-3 py-1.5 rounded">← Back</button>
             </div>
@@ -544,16 +563,16 @@
 
           <div class="bg-white border border-gray-200 rounded-lg p-4">
             <h4 class="font-bold text-gray-800 mb-3">Latest Body Statistics</h4>
-            ${bodyStats.length === 0 
+            ${bodyStats.length === 0
               ? '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>'
               : `<table><thead><tr><th>Date</th><th>Height</th><th>Weight</th><th>Waist</th><th>Hip</th></tr></thead><tbody>
                   ${bodyStats.slice(-5).reverse().map(s => `
                     <tr>
-                      <td>${new Date(s.createdAt).toLocaleString('th-TH')}</td>
-                      <td>${s.height || '–'} cm</td>
-                      <td>${s.weight || '–'} kg</td>
-                      <td>${s.waist || '–'} cm</td>
-                      <td>${s.hip || '–'} cm</td>
+                      <td>${escapeHtml(new Date(s.createdAt).toLocaleString('th-TH'))}</td>
+                      <td>${escapeHtml(s.height || '–')} cm</td>
+                      <td>${escapeHtml(s.weight || '–')} kg</td>
+                      <td>${escapeHtml(s.waist || '–')} cm</td>
+                      <td>${escapeHtml(s.hip || '–')} cm</td>
                     </tr>
                   `).join('')}
                 </tbody></table>`
@@ -564,7 +583,7 @@
 
       el.innerHTML = html;
     } catch (err) {
-      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${err.message}</p>`;
+      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
     }
   };
 
@@ -580,18 +599,19 @@
     document.getElementById('missionModal').classList.add('hidden');
   };
 
+  // ── FIX: ใช้ getDoc(doc(db,'missions',id)) ดึงเอกสารเดียวตรงๆ แทนการโหลดทั้ง collection ──
   window.editMission = async (id) => {
     editingMissionId = id;
     try {
-      const snap = await getDocs(collection(db, 'missions'));
-      const mission = snap.docs.find(d => d.id === id)?.data();
-      if (!mission) return showToast('ไม่พบภารกิจ', 'error');
-      
+      const snap = await getDoc(doc(db, 'missions', id));
+      if (!snap.exists()) return showToast('ไม่พบภารกิจ', 'error');
+      const mission = snap.data();
+
       document.getElementById('missionModalTitle').textContent = '✏️ แก้ไขภารกิจ';
-      document.getElementById('mTitle').value = mission.title;
-      document.getElementById('mPoints').value = mission.points;
-      document.getElementById('mIcon').value = mission.icon;
-      document.getElementById('mDesc').value = mission.desc;
+      document.getElementById('mTitle').value = mission.title ?? '';
+      document.getElementById('mPoints').value = mission.points ?? '';
+      document.getElementById('mIcon').value = mission.icon ?? '';
+      document.getElementById('mDesc').value = mission.desc ?? '';
       document.getElementById('missionModal').classList.remove('hidden');
     } catch (err) {
       showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
@@ -604,10 +624,10 @@
     const icon   = document.getElementById('mIcon').value.trim();
     const desc   = document.getElementById('mDesc').value.trim();
     if (!title || !pts) return showToast('กรุณากรอก ชื่อ และ แต้ม', 'error');
-    
+
     try {
       const data = { title, points: pts, icon, desc };
-      
+
       if (editingMissionId) {
         await updateDoc(doc(db, 'missions', editingMissionId), data);
         showToast('อัปเดตภารกิจสำเร็จ', 'success');

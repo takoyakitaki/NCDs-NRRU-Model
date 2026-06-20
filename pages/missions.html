@@ -17,18 +17,16 @@
     .pop{animation:pop .3s ease-out}
     html, body { height: 100%; height: 100dvh; width: 100%; }
     body { margin: 0; padding: 0; }
-    @supports (padding: max(0px)) {
-      body { padding: 0; }
-    }
+    .tab-active{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;}
+    .tab-inactive{color:#9ca3af;background:transparent;}
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
 <div class="h-full w-full max-w-md mx-auto bg-white shadow-2xl relative flex flex-col">
 
   <!-- Header -->
-  <div class="flex-shrink-0 pt-12 pb-4 px-5 bg-white border-b border-gray-100">
-    <!-- <p class="text-xs text-gray-400 font-semibold uppercase tracking-widest">VitalVibe</p> -->
-    <div class="flex items-center justify-between">
+  <div class="flex-shrink-0 pt-12 pb-3 px-5 bg-white border-b border-gray-100">
+    <div class="flex items-center justify-between mb-3">
       <h1 class="text-2xl font-black text-gray-900">🏆 ภารกิจ</h1>
       <div class="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1">
         <span class="text-base">🪙</span>
@@ -36,16 +34,86 @@
         <span class="text-xs opacity-75">แต้ม</span>
       </div>
     </div>
-
-    <p class="text-xs text-gray-400 font-semibold mt-2">ทำภารกิจให้ครบเงื่อนไขก่อนรับแต้ม</p>
-    <style>
-      .tab-active{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;}
-      .tab-inactive{color:#9ca3af;}
-    </style>
+    <!-- Tabs -->
+    <div class="grid grid-cols-4 gap-1 bg-gray-100 rounded-2xl p-1">
+      <button id="tabMissions"    onclick="switchTab('missions')"    class="tab-active py-2 rounded-xl text-xs font-black transition">🏆 ภารกิจ</button>
+      <button id="tabLeaderboard" onclick="switchTab('leaderboard')" class="tab-inactive py-2 rounded-xl text-xs font-black transition">🏅 Ranking</button>
+      <button id="tabRewards"     onclick="switchTab('rewards')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">🎁 รางวัล</button>
+      <button id="tabHistory"     onclick="switchTab('history')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">📜 ประวัติ</button>
+    </div>
   </div>
 
   <!-- Scroll area -->
-  <div class="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5" id="panelMissions" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px) + 7.5rem)">
+  <div class="flex-1 overflow-y-auto hide-scrollbar" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px) + 5rem)">
+
+    <!-- Panel: Missions -->
+    <div id="panelMissions" class="px-5 pt-4 space-y-3">
+      <p class="text-xs text-gray-400 font-semibold">ทำภารกิจให้ครบเงื่อนไขก่อนรับแต้ม</p>
+      <div id="missionList"><p class="text-center text-gray-300 py-10 font-bold">กำลังโหลด...</p></div>
+    </div>
+
+    <!-- Panel: Leaderboard -->
+    <div id="panelLeaderboard" class="hidden px-5 pt-4 space-y-3">
+      <!-- อันดับของฉัน -->
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-3">
+        <span class="text-2xl">👤</span>
+        <div class="flex-1">
+          <p class="text-xs text-gray-400 font-bold">อันดับของคุณสัปดาห์นี้</p>
+          <p id="myRank" class="font-black text-gray-800 text-lg"># –</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-400">แต้มสะสม</p>
+          <p id="myWalletRank" class="font-black text-yellow-600">0 🪙</p>
+        </div>
+      </div>
+      <div id="leaderboardList"><p class="text-center text-gray-300 py-10 font-bold">กำลังโหลด...</p></div>
+    </div>
+
+    <!-- Panel: Rewards -->
+    <div id="panelRewards" class="hidden px-5 pt-4">
+      <p class="text-xs text-gray-400 font-semibold mb-3">แลกแต้มเป็นของรางวัล</p>
+      <div id="rewardGrid" class="grid grid-cols-2 gap-3"></div>
+    </div>
+
+    <!-- Panel: History -->
+    <div id="panelHistory" class="hidden px-5 pt-4 space-y-2">
+      <p class="text-xs text-gray-400 font-semibold mb-1">ประวัติการแลกแต้ม</p>
+      <div id="redemptionHistory"></div>
+    </div>
+
+  </div>
+
+  <!-- Shipping Modal -->
+  <div id="shippingModal" class="hidden fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-[999]">
+    <div class="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 max-h-[88vh] overflow-y-auto shadow-2xl flex flex-col">
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
+        <h3 class="text-lg font-black text-gray-900">📦 ที่อยู่จัดส่ง</h3>
+        <button onclick="closeShippingModal()" class="text-2xl text-gray-400 leading-none">✕</button>
+      </div>
+      <div class="space-y-3 flex-1 overflow-y-auto hide-scrollbar">
+        <div>
+          <label class="text-xs text-gray-400 font-bold uppercase">ชื่อผู้รับ</label>
+          <input id="recipientName" type="text" placeholder="เช่น สมชาย ใจดี" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 font-bold uppercase">เบอร์โทรศัพท์</label>
+          <input id="recipientPhone" type="tel" placeholder="0812345678" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 font-bold uppercase">อีเมล</label>
+          <input id="recipientEmail" type="email" placeholder="email@example.com" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 font-bold uppercase">ที่อยู่จัดส่ง</label>
+          <textarea id="recipientAddress" placeholder="เลขที่ ซ.ถนน อ.เขต จ.จังหวัด รหัสไปรษณีย์" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold h-20 resize-none"></textarea>
+        </div>
+      </div>
+      <div class="mt-4 flex gap-2 flex-shrink-0 pb-safe">
+        <button onclick="closeShippingModal()" class="flex-1 border-2 border-gray-200 text-gray-500 font-black py-3 rounded-2xl text-sm active:scale-95 transition">ยกเลิก</button>
+        <button onclick="confirmRedemption()" class="flex-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-3 rounded-2xl text-sm shadow-md active:scale-95 transition">ยืนยันการแลก ✓</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Bottom Nav -->
   <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur border-t border-gray-100 flex items-center justify-around pb-safe z-50 shadow-2xl min-h-20">
@@ -74,6 +142,8 @@
   const uid  = session.uid;
   const week = getWeekKey();
   let missionsById = new Map();
+  let currentTab = 'missions';
+  let currentRedeem = null;
 
   function getWeekKey() {
     const d = new Date();
@@ -93,19 +163,25 @@
   onSnapshot(doc(db,'users',uid), snap => {
     const wallet = snap.data()?.wallet || 0;
     document.getElementById('myWallet').textContent = wallet.toLocaleString();
+    document.getElementById('myWalletRank').textContent = wallet.toLocaleString() + ' 🪙';
   });
 
   // ── Tabs ───────────────────────────────────────────────────
+  const TABS = ['missions','leaderboard','rewards','history'];
   window.switchTab = (tab) => {
-    document.getElementById('panelMissions').classList.toggle('hidden',    tab!=='missions');
-    document.getElementById('panelLeaderboard').classList.toggle('hidden', tab!=='leaderboard');
-    document.getElementById('tabMissions').className    = `flex-1 py-2 rounded-xl text-xs font-black transition ${tab==='missions'?'tab-active':'tab-inactive'}`;
-    document.getElementById('tabLeaderboard').className = `flex-1 py-2 rounded-xl text-xs font-black transition ${tab==='leaderboard'?'tab-active':'tab-inactive'}`;
+    currentTab = tab;
+    TABS.forEach(t => {
+      const panel = document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1));
+      const btn   = document.getElementById('tab'   + t.charAt(0).toUpperCase() + t.slice(1));
+      if (panel) panel.classList.toggle('hidden', t !== tab);
+      if (btn)   btn.className = `py-2 rounded-xl text-xs font-black transition ${t === tab ? 'tab-active' : 'tab-inactive'}`;
+    });
     if (tab === 'leaderboard') loadLeaderboard();
+    if (tab === 'rewards')     loadRewards();
+    if (tab === 'history')     loadRedemptionHistory();
   };
 
   // ── Missions ───────────────────────────────────────────────
-  // Default missions (also stored in Firestore under /missions/)
   const DEFAULT_MISSIONS = [
     { id:'m_food3',   icon:'🍱', title:'บันทึกอาหาร 3 มื้อ',    desc:'บันทึกอาหารครบ 3 มื้อในวันนี้',  points:50,  target:3,  type:'food' },
     { id:'m_weight',  icon:'⚖️', title:'ชั่งน้ำหนักวันนี้',      desc:'บันทึกน้ำหนักอย่างน้อย 1 ครั้ง', points:20,  target:1,  type:'weight' },
@@ -116,7 +192,6 @@
 
   async function loadMissions() {
     const today = formatLocalDate(new Date());
-    // Fetch missions from Firestore (admin can add more), fall back to defaults
     const mSnap = await getDocs(collection(db,'missions'));
     const allowedTypes = new Set(['food','weight','health','photo','calorieGoal']);
     const missions = (mSnap.empty
@@ -126,14 +201,12 @@
     missionsById = new Map(missions.map(m => [m.id, m]));
     const progress = await calculateMissionProgress(missions, today);
 
-    // Fetch user's completed missions today
     const cSnap = await getDocs(query(
       collection(db,'missionCompletions'),
       where('uid','==',uid),
       where('date','==',today)
     ));
     const completed = new Set(cSnap.docs.map(d=>d.data().missionId));
-
     renderMissions(missions, completed, progress);
   }
 
@@ -203,10 +276,7 @@
     const points = Number(mission.points) || 0;
     const today = formatLocalDate(new Date());
     const progress = await calculateMissionProgress([mission], today);
-    if (!progress.get(missionId)?.claimable) {
-      return alert('ยังทำภารกิจไม่ครบเงื่อนไข');
-    }
-    // Check not already done
+    if (!progress.get(missionId)?.claimable) return alert('ยังทำภารกิจไม่ครบเงื่อนไข');
     const cSnap = await getDocs(query(
       collection(db,'missionCompletions'),
       where('uid','==',uid),
@@ -214,30 +284,19 @@
       where('date','==',today)
     ));
     if (!cSnap.empty) return alert('ทำภารกิจนี้ไปแล้ววันนี้');
-
-    // Save completion
     await addDoc(collection(db,'missionCompletions'),{
       uid, missionId, points, date: today,
       completedAt: new Date().toISOString()
     });
-
-    // Add points to user wallet & create transaction
     await runTransaction(db, async (transaction) => {
       const userRef = doc(db,'users',uid);
       const userSnap = await transaction.get(userRef);
       const currentWallet = userSnap.data()?.wallet || 0;
-      
-      // Update wallet
       transaction.update(userRef, { wallet: currentWallet + points });
-      
-      // Create transaction log entry
       const txRef = doc(collection(db,'transactions'));
       transaction.set(txRef, {
-        uid,
-        type: 'earn',
-        amount: points,
-        reason: `mission_${missionId}`,
-        missionId,
+        uid, type: 'earn', amount: points,
+        reason: `mission_${missionId}`, missionId,
         missionTitle: mission.title,
         timestamp: new Date().toISOString(),
         balance: currentWallet + points
@@ -246,31 +305,43 @@
     loadMissions();
   };
 
-  // ── Leaderboard ────────────────────────────────────────────
+  // ── Leaderboard — Top 9 + อันดับผู้ใช้ ───────────────────
   async function loadLeaderboard() {
-    const q = query(
-      collection(db,'leaderboard'),
-      where('week','==',week),
-      orderBy('points','desc'),
-      limit(50)
-    );
-    const snap = await getDocs(q);
-    const entries = snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderLeaderboard(entries);
+    document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-300 py-10 font-bold">กำลังโหลด...</p>';
+    try {
+      // ดึง top 9
+      const q9 = query(
+        collection(db,'leaderboard'),
+        where('week','==',week),
+        orderBy('points','desc'),
+        limit(9)
+      );
+      // ดึงทั้งหมดเพื่อหาอันดับจริงของ user
+      const qAll = query(
+        collection(db,'leaderboard'),
+        where('week','==',week),
+        orderBy('points','desc')
+      );
+      const [snap9, snapAll] = await Promise.all([getDocs(q9), getDocs(qAll)]);
+      const top9    = snap9.docs.map(d=>({id:d.id,...d.data()}));
+      const allUsers = snapAll.docs.map(d=>({id:d.id,...d.data()}));
+      const myRank  = allUsers.findIndex(e => e.uid === uid) + 1;
+      document.getElementById('myRank').textContent = myRank ? `# ${myRank}` : '# –';
+      renderLeaderboard(top9, myRank, allUsers.length);
+    } catch(err) {
+      document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-300 py-10 font-bold">โหลดข้อมูลไม่สำเร็จ</p>';
+      console.error('Leaderboard error:', err);
+    }
   }
 
-  function renderLeaderboard(entries) {
+  function renderLeaderboard(top9, myRank, total) {
     const medals = ['🥇','🥈','🥉'];
-    const myRank = entries.findIndex(e=>e.uid===uid) + 1;
-    document.getElementById('myRank').textContent = myRank ? `# ${myRank}` : '# –';
-
-    if (!entries.length) {
+    if (!top9.length) {
       document.getElementById('leaderboardList').innerHTML =
         `<div class="text-center text-gray-300 py-10"><p class="text-4xl mb-2">🏅</p><p class="font-bold text-gray-400">ยังไม่มีข้อมูลสัปดาห์นี้</p></div>`;
       return;
     }
-
-    document.getElementById('leaderboardList').innerHTML = entries.map((e,i) => {
+    let html = top9.map((e, i) => {
       const isMe = e.uid === uid;
       return `<div class="fade-in flex items-center gap-3 ${isMe?'bg-amber-50 border border-amber-200':'bg-white border border-gray-100'} rounded-2xl p-3 shadow-sm">
         <span class="text-xl w-8 text-center flex-shrink-0">${medals[i] || `${i+1}`}</span>
@@ -283,7 +354,107 @@
         <p class="font-black text-yellow-600 flex-shrink-0">🪙 ${(e.wallet||0).toLocaleString()}</p>
       </div>`;
     }).join('');
+
+    // แสดงอันดับ user ถ้าไม่ได้อยู่ใน top 9
+    if (myRank > 9) {
+      html += `<div class="flex items-center gap-2 py-2 px-3"><div class="flex-1 border-t border-dashed border-gray-200"></div><span class="text-xs text-gray-300 flex-shrink-0 px-2">···</span><div class="flex-1 border-t border-dashed border-gray-200"></div></div>`;
+      html += `<div class="fade-in flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-2xl p-3 shadow-sm">
+        <span class="text-sm font-black text-gray-500 w-8 text-center flex-shrink-0">#${myRank}</span>
+        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+          ${session.avatar?.startsWith('http') ? `<img src="${session.avatar}" class="w-full h-full object-cover">` : '👤'}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-black text-gray-800 text-sm truncate">${session.displayName||'คุณ'} (คุณ)</p>
+          <p class="text-xs text-gray-400">อีก ${myRank - 9} อันดับถึง Top 9</p>
+        </div>
+      </div>`;
+    }
+    document.getElementById('leaderboardList').innerHTML = html;
   }
+
+  // ── Rewards ────────────────────────────────────────────────
+  async function loadRewards() {
+    document.getElementById('rewardGrid').innerHTML = '<p class="col-span-2 text-center text-gray-300 py-8 font-bold">กำลังโหลด...</p>';
+    const snap = await getDocs(collection(db, 'rewards'));
+    const rewards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('rewardGrid').innerHTML = rewards.length
+      ? rewards.map(r => `<div class="fade-in bg-white border border-gray-100 rounded-3xl p-4 shadow-sm flex flex-col items-center text-center">
+          <div class="w-full aspect-square bg-amber-50 rounded-2xl flex items-center justify-center text-5xl mb-3">${r.image || '🎁'}</div>
+          <h4 class="font-black text-gray-800 text-xs mb-1 leading-tight">${r.title}</h4>
+          <p class="text-[10px] text-gray-400 mb-3">${r.description || ''}</p>
+          <button onclick="openShippingModal('${r.id}','${r.title}',${r.points})" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95 transition">แลก ${(r.points || 0).toLocaleString()} 🪙</button>
+        </div>`).join('')
+      : `<div class="col-span-2 text-center text-gray-300 py-6 border-2 border-dashed border-gray-200 rounded-3xl font-bold">ยังไม่มีของรางวัลในระบบ</div>`;
+  }
+
+  // ── Redemption history ─────────────────────────────────────
+  async function loadRedemptionHistory() {
+    document.getElementById('redemptionHistory').innerHTML = '<p class="text-center text-gray-300 py-8 font-bold">กำลังโหลด...</p>';
+    const snap = await getDocs(query(collection(db, 'redemptions'), where('uid', '==', uid)));
+    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.redeemedAt || '').localeCompare(String(a.redeemedAt || '')));
+    const sL = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', delivered: 'ส่งแล้ว' };
+    const sC = { pending: 'text-yellow-500', confirmed: 'text-blue-500', delivered: 'text-green-500' };
+    document.getElementById('redemptionHistory').innerHTML = entries.length
+      ? entries.map(e => `<div class="fade-in bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
+          <span class="text-2xl">🎁</span>
+          <div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${e.title || e.rewardTitle}</p><p class="text-xs text-gray-400">${new Date(e.redeemedAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})}</p></div>
+          <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${e.cost || e.pointsCost} 🪙</p><p class="text-[10px] font-bold ${sC[e.status] || 'text-gray-400'}">${sL[e.status] || e.status}</p></div>
+        </div>`).join('')
+      : `<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติการแลก</p>`;
+  }
+
+  // ── Shipping Modal ─────────────────────────────────────────
+  window.openShippingModal = async (rewardId, title, cost) => {
+    const w = (await getDoc(doc(db, 'users', uid))).data()?.wallet || 0;
+    if (w < cost) return alert(`แต้มไม่พอ (มี ${w} แต้ม ต้องการ ${cost} แต้ม)`);
+    currentRedeem = { rewardId, title, cost };
+    document.getElementById('shippingModal').classList.remove('hidden');
+  };
+
+  window.closeShippingModal = () => {
+    currentRedeem = null;
+    document.getElementById('shippingModal').classList.add('hidden');
+    ['recipientName','recipientPhone','recipientEmail','recipientAddress'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+  };
+
+  window.confirmRedemption = async () => {
+    if (!currentRedeem) return;
+    const name    = document.getElementById('recipientName').value.trim();
+    const phone   = document.getElementById('recipientPhone').value.trim();
+    const email   = document.getElementById('recipientEmail').value.trim();
+    const address = document.getElementById('recipientAddress').value.trim();
+    if (!name || !phone || !email || !address) return alert('กรุณากรอกข้อมูลให้ครบ');
+    if (!/^0[0-9]{9}/.test(phone)) return alert('เบอร์โทรไม่ถูกต้อง');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('อีเมลไม่ถูกต้อง');
+    try {
+      await runTransaction(db, async (tx) => {
+        const uRef  = doc(db, 'users', uid);
+        const uSnap = await tx.get(uRef);
+        const w = uSnap.data()?.wallet || 0;
+        if (w < currentRedeem.cost) throw new Error('NOT_ENOUGH');
+        tx.set(doc(collection(db, 'redemptions')), {
+          uid, rewardId: currentRedeem.rewardId, rewardTitle: currentRedeem.title,
+          pointsCost: currentRedeem.cost, status: 'pending',
+          shippingAddress: { recipientName: name, recipientPhone: phone, recipientEmail: email, address },
+          redeemedAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+        });
+        tx.set(doc(collection(db, 'transactions')), {
+          uid, type: 'spend', amount: currentRedeem.cost,
+          reason: `redeem_${currentRedeem.rewardId}`, rewardTitle: currentRedeem.title,
+          timestamp: new Date().toISOString(), balance: w - currentRedeem.cost
+        });
+        tx.update(uRef, { wallet: w - currentRedeem.cost });
+      });
+      closeShippingModal();
+      alert('🎉 แลกของรางวัลสำเร็จ!');
+      loadRedemptionHistory();
+    } catch(e) {
+      if (e.message === 'NOT_ENOUGH') return alert('แต้มไม่พอ');
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    }
+  };
 
   loadMissions();
 </script>

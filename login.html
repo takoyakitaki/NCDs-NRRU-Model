@@ -110,12 +110,12 @@
           </div>
           <div class="grid gap-2.5 sm:gap-3" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
             <div>
-              <label class="text-2xs sm:text-xs text-white/45 font-bold">น้ำหนัก (kg) <span class="text-emerald-400">*</span></label>
+              <label class="text-2xs sm:text-xs text-white/45 font-bold">น้ำหนักปัจจุบัน (kg) <span class="text-emerald-400">*</span></label>
               <input id="regWeight" type="number" placeholder="65" step="0.1" min="20" max="300" inputmode="decimal"
                 class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors">
             </div>
             <div>
-              <label class="text-2xs sm:text-xs text-white/45 font-bold">ส่วนสูง (cm) <span class="text-emerald-400">*</span></label>
+              <label class="text-2xs sm:text-xs text-white/45 font-bold">ส่วนสูงปัจจุบัน (cm) <span class="text-emerald-400">*</span></label>
               <input id="regHeight" type="number" placeholder="170" step="0.1" min="50" max="250" inputmode="decimal"
                 class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors">
             </div>
@@ -175,7 +175,7 @@
     }
 
     const { saveSession } = await import('./lib/auth.js');
-    const { collection, doc, getDoc, getDocs, query, setDoc, where, runTransaction } =
+    const { collection, doc, getDoc, getDocs, query, setDoc, where, runTransaction, addDoc } =
       await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
     const params = new URLSearchParams(window.location.search);
@@ -471,6 +471,25 @@
           }
         });
         console.log('✅ User doc written:', firebaseUid);
+
+        // ── Step 2.5: สร้าง bodyStats เริ่มต้นทันที (แก้ปัญหา profile ว่างสำหรับสมาชิกใหม่) ──
+        try {
+          await addDoc(collection(db, 'bodyStats'), {
+            uid: firebaseUid,
+            height: initialHeight,
+            weight: initialWeight,
+            waist: null,
+            hip: null,
+            muscle: null,
+            bloodfat: null,
+            bloodsugar: null,
+            bloodpressure: null,
+            createdAt: now,
+          });
+          console.log('✅ Initial bodyStats created');
+        } catch (bsErr) {
+          console.warn('⚠️ bodyStats init failed (non-critical):', bsErr.message);
+        }
 
         // ── Step 3: บันทึก session แล้ว redirect ──
         saveLineSession(firebaseUid, userData, lineProfile);

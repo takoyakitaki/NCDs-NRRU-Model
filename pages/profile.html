@@ -22,7 +22,7 @@
 <div class="h-full w-full max-w-md mx-auto bg-white shadow-2xl relative flex flex-col">
 
   <div class="flex-shrink-0 pt-12 pb-4 px-5 bg-white border-b border-gray-100">
-    <h1 class="text-2xl font-black text-gray-900">👤 โปรไฟล์ & รางวัล</h1>
+    <h1 class="text-2xl font-black text-gray-900">👤 โปรไฟล์</h1>
   </div>
 
   <div class="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-4">
@@ -156,57 +156,6 @@
       </div>
     </div>
 
-    <!-- Rewards -->
-    <div class="mb-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-black text-gray-800">🎁 แลกของรางวัล</h3>
-        <div class="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1">
-          <span class="text-sm">🪙</span>
-          <span id="walletDisplay" class="font-black text-yellow-600 text-xs">0</span>
-          <span class="text-[10px] text-gray-400">แต้ม</span>
-        </div>
-      </div>
-      <div id="rewardGrid" class="grid grid-cols-2 gap-3"></div>
-    </div>
-
-    <!-- Redemption history -->
-    <div class="mb-5">
-      <h3 class="font-black text-gray-800 mb-3">🧾 ประวัติการแลก</h3>
-      <div id="redemptionHistory" class="space-y-2"></div>
-    </div>
-
-    <!-- Shipping Modal -->
-    <div id="shippingModal" class="hidden fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-[999]">
-      <div class="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 max-h-[88vh] overflow-y-auto shadow-2xl flex flex-col">
-        <div class="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 class="text-lg font-black text-gray-900">📦 ที่อยู่จัดส่ง</h3>
-          <button onclick="closeShippingModal()" class="text-2xl text-gray-400 leading-none">✕</button>
-        </div>
-        <div class="space-y-3 flex-1 overflow-y-auto hide-scrollbar">
-          <div>
-            <label class="text-xs text-gray-400 font-bold uppercase">ชื่อผู้รับ</label>
-            <input id="recipientName" type="text" placeholder="เช่น สมชาย ใจดี" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors">
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 font-bold uppercase">เบอร์โทรศัพท์</label>
-            <input id="recipientPhone" type="tel" placeholder="0812345678" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors">
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 font-bold uppercase">อีเมล</label>
-            <input id="recipientEmail" type="email" placeholder="email@example.com" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors">
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 font-bold uppercase">ที่อยู่จัดส่ง</label>
-            <textarea id="recipientAddress" placeholder="เลขที่ ซ.ถนน อ.เขต จ.จังหวัด รหัสไปรษณีย์" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors h-20 resize-none"></textarea>
-          </div>
-        </div>
-        <div class="mt-4 flex gap-2 flex-shrink-0 pb-safe">
-          <button onclick="closeShippingModal()" class="flex-1 border-2 border-gray-200 text-gray-500 font-black py-3 rounded-2xl text-sm active:scale-95 transition">ยกเลิก</button>
-          <button onclick="confirmRedemption()" class="flex-1 bg-gradient-to-r from-violet-400 to-purple-500 text-white font-black py-3 rounded-2xl text-sm shadow-md active:scale-95 transition">ยืนยันการแลก ✓</button>
-        </div>
-      </div>
-    </div>
-
     <button onclick="logout()" class="w-full border-2 border-gray-200 text-gray-500 font-black py-3 rounded-2xl text-sm active:scale-95 transition mb-4">
       🚪 ออกจากระบบ
     </button>
@@ -225,7 +174,7 @@
   import { requireAuth, clearSession, saveSession } from '../lib/auth.js';
   import { db } from '../lib/firebase.js';
   import {
-    doc, getDoc, updateDoc, setDoc,
+    doc, getDoc, updateDoc,
     collection, getDocs, addDoc, query, where, orderBy, onSnapshot, runTransaction
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
   import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -357,8 +306,18 @@
     try {
       const q = query(collection(db, 'bodyStats'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
+      let l = null;
       if (!snap.empty) {
-        const l = snap.docs[0].data();
+        l = snap.docs[0].data();
+      } else {
+        // Fallback: ดึงจาก users.initialHeight / initialWeight สำหรับสมาชิกใหม่
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        const u = userSnap.data() || {};
+        if (u.initialHeight || u.initialWeight) {
+          l = { height: u.initialHeight || null, weight: u.initialWeight || null };
+        }
+      }
+      if (l) {
         const set = (id, val, unit) => {
           document.getElementById(id).innerHTML = val
             ? `<span class="opacity-75">${id.replace('stats','')}:</span> <span class="font-black">${val} ${unit}</span>`
@@ -370,43 +329,14 @@
         set('statsHip', l.hip, 'cm');
         if (l.height) document.getElementById('bs_height').value = l.height;
         if (l.weight) document.getElementById('bs_weight').value = l.weight;
-        if (l.waist) document.getElementById('bs_waist').value = l.waist;
-        if (l.hip) document.getElementById('bs_hip').value = l.hip;
-        if (l.muscle) document.getElementById('bs_muscle').value = l.muscle;
-        if (l.bloodfat) document.getElementById('bs_bloodfat').value = l.bloodfat;
-        if (l.bloodsugar) document.getElementById('bs_bloodsugar').value = l.bloodsugar;
+        if (l.waist)  document.getElementById('bs_waist').value = l.waist;
+        if (l.hip)    document.getElementById('bs_hip').value = l.hip;
+        if (l.muscle)        document.getElementById('bs_muscle').value = l.muscle;
+        if (l.bloodfat)      document.getElementById('bs_bloodfat').value = l.bloodfat;
+        if (l.bloodsugar)    document.getElementById('bs_bloodsugar').value = l.bloodsugar;
         if (l.bloodpressure) document.getElementById('bs_bloodpressure').value = l.bloodpressure;
       }
     } catch (err) { console.error('Body stats error:', err); }
-  }
-
-  // Rewards
-  async function loadRewards() {
-    const snap = await getDocs(collection(db, 'rewards'));
-    const rewards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    document.getElementById('rewardGrid').innerHTML = rewards.length
-      ? rewards.map(r => `<div class="fade-in bg-white border border-gray-100 rounded-3xl p-4 shadow-sm flex flex-col items-center text-center">
-          <div class="w-full aspect-square bg-purple-50 rounded-2xl flex items-center justify-center text-5xl mb-3">${r.image || '🎁'}</div>
-          <h4 class="font-black text-gray-800 text-xs mb-1 leading-tight">${r.title}</h4>
-          <p class="text-[10px] text-gray-400 mb-3">${r.description || ''}</p>
-          <button onclick="openShippingModal('${r.id}','${r.title}',${r.points})" class="w-full bg-gradient-to-r from-violet-400 to-purple-500 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95 transition">แลก ${(r.points || 0).toLocaleString()} 🪙</button>
-        </div>`).join('')
-      : `<div class="col-span-2 text-center text-gray-300 py-6 border-2 border-dashed border-gray-200 rounded-3xl font-bold">ยังไม่มีของรางวัลในระบบ</div>`;
-  }
-
-  // Redemption history
-  async function loadRedemptionHistory() {
-    const snap = await getDocs(query(collection(db, 'redemptions'), where('uid', '==', uid)));
-    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.redeemedAt || '').localeCompare(String(a.redeemedAt || '')));
-    const sL = { pending: 'รอยืนยัน', confirmed: 'ยืนยันแล้ว', delivered: 'ส่งแล้ว' };
-    const sC = { pending: 'text-yellow-500', confirmed: 'text-blue-500', delivered: 'text-green-500' };
-    document.getElementById('redemptionHistory').innerHTML = entries.length
-      ? entries.map(e => `<div class="fade-in bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
-          <span class="text-2xl">🎁</span>
-          <div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${e.title || e.rewardTitle}</p><p class="text-xs text-gray-400">${new Date(e.redeemedAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})}</p></div>
-          <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${e.cost || e.pointsCost} 🪙</p><p class="text-[10px] font-bold ${sC[e.status] || 'text-gray-400'}">${sL[e.status] || e.status}</p></div>
-        </div>`).join('')
-      : `<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติการแลก</p>`;
   }
 
   window.logout = async () => {
@@ -414,51 +344,6 @@
     await signOut(auth); clearSession(); window.location.href = '/login.html';
   };
 
-  let currentRedeem = null;
-
-  window.openShippingModal = async (rewardId, title, cost) => {
-    const w = (await getDoc(doc(db, 'users', uid))).data()?.wallet || 0;
-    if (w < cost) return alert(`แต้มไม่พอ (มี ${w} แต้ม ต้องการ ${cost} แต้ม)`);
-    currentRedeem = { rewardId, title, cost };
-    document.getElementById('shippingModal').classList.remove('hidden');
-  };
-
-  window.closeShippingModal = () => {
-    currentRedeem = null;
-    document.getElementById('shippingModal').classList.add('hidden');
-    ['recipientName','recipientPhone','recipientEmail','recipientAddress'].forEach(id => document.getElementById(id).value = '');
-  };
-
-  window.confirmRedemption = async () => {
-    if (!currentRedeem) return;
-    const name = document.getElementById('recipientName').value.trim();
-    const phone = document.getElementById('recipientPhone').value.trim();
-    const email = document.getElementById('recipientEmail').value.trim();
-    const address = document.getElementById('recipientAddress').value.trim();
-    if (!name || !phone || !email || !address) return alert('กรุณากรอกข้อมูลให้ครบ');
-    if (!/^0[0-9]{9}/.test(phone)) return alert('เบอร์โทรไม่ถูกต้อง');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('อีเมลไม่ถูกต้อง');
-    try {
-      await runTransaction(db, async (tx) => {
-        const uRef = doc(db, 'users', uid);
-        const uSnap = await tx.get(uRef);
-        const w = uSnap.data()?.wallet || 0;
-        if (w < currentRedeem.cost) throw new Error('NOT_ENOUGH');
-        tx.set(doc(collection(db, 'redemptions')), { uid, rewardId: currentRedeem.rewardId, rewardTitle: currentRedeem.title, pointsCost: currentRedeem.cost, status: 'pending', shippingAddress: { recipientName: name, recipientPhone: phone, recipientEmail: email, address }, redeemedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-        tx.set(doc(collection(db, 'transactions')), { uid, type: 'spend', amount: currentRedeem.cost, reason: `redeem_${currentRedeem.rewardId}`, rewardTitle: currentRedeem.title, timestamp: new Date().toISOString(), balance: w - currentRedeem.cost });
-        tx.update(uRef, { wallet: w - currentRedeem.cost });
-      });
-      closeShippingModal();
-      alert('🎉 แลกของรางวัลสำเร็จ!');
-      loadRedemptionHistory();
-    } catch (e) {
-      if (e.message === 'NOT_ENOUGH') return alert('แต้มไม่พอ');
-      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
-    }
-  };
-
-  loadRewards();
-  loadRedemptionHistory();
   loadBodyStats();
 </script>
 </body>
