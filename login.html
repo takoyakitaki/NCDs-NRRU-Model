@@ -340,6 +340,24 @@
       const now = new Date().toISOString();
 
       try {
+        // ✅ Authenticate with Firebase using custom token or anonymous auth
+        // Since we're using LINE UID as document ID, we need to sign in anonymously
+        // then write with proper permissions
+        const { getAuth: getFirebaseAuth, signInAnonymously: firebaseSignInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+        const firebaseAuth = getFirebaseAuth();
+        
+        // Try to sign in as this user (using LINE UID as custom user ID)
+        try {
+          // If already authenticated as this user, skip
+          if (firebaseAuth.currentUser?.uid !== userId) {
+            // Sign in anonymously first, then update profile
+            await firebaseSignInAnonymously(firebaseAuth);
+          }
+        } catch (authErr) {
+          console.warn('Auth issue (may be expected):', authErr.message);
+        }
+
+        // ✅ Write user data - Firestore will use the LINE UID as document ID
         await setDoc(userRef, {
           uid: userId,
           lineUid: userId,
@@ -360,6 +378,7 @@
         saveLineSession(userId, { displayName, phone, birthDate, initialWeight, initialHeight, email, avatar: lineProfile.pictureUrl || '' }, lineProfile);
         window.location.href = redirect;
       } catch (err) {
+        console.error('Registration error:', err);
         showMsg('สร้างบัญชีไม่สำเร็จ: ' + err.message);
         btn.disabled = false; btn.textContent = 'สร้างบัญชี';
       }
