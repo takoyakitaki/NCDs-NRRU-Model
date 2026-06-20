@@ -28,7 +28,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner { animation: spin .8s linear infinite; }
     /* ฟอร์มลงทะเบียนยาว → ให้ scroll ภายในการ์ด */
-    .register-scroll { max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .register-scroll { max-height: none; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .register-scroll::-webkit-scrollbar { display: none; }
     .register-scroll { -ms-overflow-style: none; scrollbar-width: none; }
     /* ซ่อนลูกศรของ date input บน dark bg */
@@ -62,12 +62,12 @@
       </div>
 
       <!-- ✅ ฟอร์มลงทะเบียน — เพิ่มฟิลด์ใหม่ -->
-      <div id="registerView" class="hidden">
-        <div class="mb-4">
+      <div id="registerView" class="hidden flex flex-col max-h-[calc(100vh-280px)]">
+        <div class="mb-4 flex-shrink-0">
           <h2 class="text-white font-black text-xl">📝 ลงทะเบียน</h2>
           <p class="text-white/45 text-xs mt-1">กรอกข้อมูลเพื่อเริ่มใช้งาน VitalVibe</p>
         </div>
-        <div class="register-scroll space-y-3 pr-1">
+        <div class="register-scroll space-y-3 pr-1 flex-1 overflow-y-auto">
           <!-- ชื่อ-นามสกุล -->
           <div>
             <label class="text-xs text-white/45 font-bold">ชื่อ - นามสกุล <span class="text-emerald-400">*</span></label>
@@ -110,16 +110,16 @@
             <input id="regEmail" type="email" placeholder="name@example.com"
               class="mt-1 w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3 text-white placeholder-white/40 text-sm transition-colors">
           </div>
+
+          <!-- ✅ แสดง BMI แบบ real-time -->
+          <div id="bmiPreview" class="hidden p-3 rounded-2xl bg-white/10 text-center">
+            <p class="text-white/60 text-xs">BMI ของคุณ</p>
+            <p id="bmiValue" class="text-2xl font-black text-emerald-400 mt-1">–</p>
+            <p id="bmiLabel" class="text-xs text-white/50 mt-0.5">–</p>
+          </div>
         </div>
 
-        <!-- ✅ แสดง BMI แบบ real-time -->
-        <div id="bmiPreview" class="hidden mt-3 p-3 rounded-2xl bg-white/10 text-center">
-          <p class="text-white/60 text-xs">BMI ของคุณ</p>
-          <p id="bmiValue" class="text-2xl font-black text-emerald-400 mt-1">–</p>
-          <p id="bmiLabel" class="text-xs text-white/50 mt-0.5">–</p>
-        </div>
-
-        <button id="btnRegister" class="btn-primary w-full mt-4 py-3.5 rounded-2xl text-white font-black text-sm shadow-lg">
+        <button id="btnRegister" class="btn-primary w-full mt-4 py-3.5 rounded-2xl text-white font-black text-sm shadow-lg flex-shrink-0">
           สร้างบัญชี
         </button>
       </div>
