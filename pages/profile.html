@@ -222,7 +222,7 @@
     document.getElementById('profileName').textContent = d.displayName || session.displayName || '–';
     document.getElementById('profilePhone').textContent = d.phone ? `📱 ${d.phone}` : '–';
   
-    document.getElementById('totalPoints').textContent = (d.wallet || 0).toLocaleString();
+    document.getElementById('totalPoints').textContent = (d.points || 0).toLocaleString();
     // walletDisplay ถูกลบออกพร้อม Rewards section แล้ว — ไม่ต้อง set
 
     // ข้อมูลส่วนตัว
@@ -239,9 +239,10 @@
       const badge = document.getElementById('bmiBadge');
       badge.classList.remove('hidden');
       badge.textContent = `BMI ${bmi.value}`;
-      if (bmi.value < 18.5) badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-blue-100 text-blue-600';
-      else if (bmi.value < 23) badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-600';
-      else if (bmi.value < 25) badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-yellow-100 text-yellow-600';
+      const bmiNum = parseFloat(bmi.value);  // ← แก้ตรงนี้
+      if (bmiNum < 18.5) badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-blue-100 text-blue-600';
+      else if (bmiNum < 23) badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-600';
+      else if (bmiNum < 25) badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-yellow-100 text-yellow-600';
       else badge.className = 'text-xs font-black px-3 py-1 rounded-full bg-red-100 text-red-600';
     } else {
       document.getElementById('infoBMI').textContent = '–';
