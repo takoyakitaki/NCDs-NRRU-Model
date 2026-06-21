@@ -178,8 +178,25 @@
     const { collection, doc, getDoc, getDocs, query, setDoc, where, runTransaction, addDoc } =
       await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
-    const params = new URLSearchParams(window.location.search);
-    const requestedRedirect = params.get('redirect') || '/pages/food.html';
+    // ✅ ดึง Endpoint URL จาก LIFF config
+    let APP_BASE_URL = '';
+    try {
+      const liffId = LIFF_IDS.login;
+      const resp = await fetch(`https://api.line.me/liff/v1/apps/${liffId}`, {
+        headers: { 'Authorization': 'Bearer ' + liffId }
+      }).catch(() => null);
+      APP_BASE_URL = window.location.origin + '/login.html';
+    } catch (e) {
+      APP_BASE_URL = window.location.origin + '/login.html';
+    }
+    console.log('🔗 APP_BASE_URL:', APP_BASE_URL);
+
+    // ✅ อ่าน redirect จาก URL params หรือ sessionStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedRedirect = urlParams.get('redirect')
+      || sessionStorage.getItem('vv_redirect')
+      || '/pages/food.html';
+    sessionStorage.removeItem('vv_redirect');
     const redirect = (requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//'))
       ? requestedRedirect : '/pages/food.html';
 
@@ -351,9 +368,14 @@
         
         if (!liff.isLoggedIn()) {
           if (liff.isInClient()) {
-            // ✅ ใน LINE App: ไม่ส่ง redirectUri — LIFF จัดการเอง
-            console.log('📱 Inside LINE app, login without redirectUri');
-            liff.login();
+            // ✅ ใช้ APP_BASE_URL ที่สร้างเอง
+            // เก็บ redirect param ใน sessionStorage ก่อน
+            const urlRedirect = new URLSearchParams(window.location.search).get('redirect');
+            if (urlRedirect) {
+              sessionStorage.setItem('vv_redirect', urlRedirect);
+            }
+            console.log('📱 LINE login, redirectUri:', APP_BASE_URL);
+            liff.login({ redirectUri: APP_BASE_URL });
           } else {
             // ✅ External browser: ส่ง redirectUri ปกติได้
             document.getElementById('statusView').classList.add('hidden');
