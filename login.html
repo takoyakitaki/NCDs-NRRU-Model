@@ -1,3 +1,6 @@
+นี่คือโค้ดทั้งหมดของไฟล์ `login.html` ที่ได้รับการแก้ไขในส่วนของ `continueWithLineProfile` โดยการถอดคำสั่ง `signInAnonymously()` ที่เป็นตัวการทำให้เกิด UID Mismatch ออก แล้วเปลี่ยนเป็นการโยน Error เพื่อให้ระบบตัดเข้ากระบวนการแจ้งเตือนและให้ผู้ใช้กดลองใหม่อย่างถูกต้องครับ
+
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -186,9 +189,6 @@
     let lineProfile = null;
     let firebaseAuth = null;
 
-    // ── FIX #1: ป้องกัน liff.init() ถูกเรียกซ้ำ ──
-    // LIFF SDK จะ throw error ถ้า init() ถูกเรียกซ้ำสอง instance
-    // เก็บ promise ของการ init ไว้ใช้ร่วมกันทุกจุดที่ต้องใช้ liff
     let liffInitPromise = null;
     function ensureLiffInit() {
       if (!liffInitPromise) {
@@ -299,7 +299,7 @@
       });
     }
 
-        async function continueWithLineProfile(profile) {
+    async function continueWithLineProfile(profile) {
       if (!profile?.userId) { showMsg('ไม่ได้รับข้อมูล LINE Profile'); setStatus('ข้อมูล LINE ไม่ครบ'); return; }
       renderProfile(profile);
       setStatus('กำลังตรวจสอบการลงทะเบียน...');
@@ -311,33 +311,28 @@
           return;
         }
 
-        // ── 🔥 ส่วนที่เพิ่มใหม่: จัดการ Firebase Auth สำหรับ Returning User ──
-        const { getAuth, signInWithCustomToken, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+        const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
         if (!firebaseAuth) firebaseAuth = getAuth();
 
-        // ถ้ายังไม่ได้ล็อกอินอยู่ (เคส LINE In-App Browser ที่ล้าง Session ไปแล้ว)
         if (!firebaseAuth.currentUser) {
           try {
-            // 🌟 วิธีที่ถูกต้องที่สุด: ขอ Custom Token จาก Cloud Function เพื่อกู้ UID เดิม
             const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
             const generateToken = httpsCallable(getFunctions(), 'generateLineAuthToken');
             const result = await generateToken({ lineUid: profile.userId });
             await signInWithCustomToken(firebaseAuth, result.data.token);
             console.log('✅ Signed in with Custom Token (UID restored)');
           } catch (customTokenErr) {
-            console.warn('⚠️ Custom Token failed, falling back to Anonymous (UID will change!):', customTokenErr.message);
-            // ⚠️ Fallback: ถ้ายังไม่มี Cloud Function ให้ใช้บรรทัดนี้ก่อน (แต่ข้อมูลเก่าจะอ่านไม่ออกเพราะ UID เปลี่ยน)
-            await signInAnonymously(firebaseAuth);
+            console.error('❌ Custom Token failed:', customTokenErr.message);
+            // ✅ FIX: เอา signInAnonymously ออกเพื่อป้องกัน UID Mismatch และส่ง Error ไปจัดการที่ catch หลัก
+            throw new Error('ไม่สามารถดึงข้อมูลยืนยันตัวตนเดิมได้ (Cloud Functions มีปัญหา) กรุณาลองใหม่อีกครั้ง');
           }
         }
-        // ── จบส่วนที่แก้ไข ──
 
         saveLineSession(user.id, user.data, profile);
         window.location.href = redirect;
       } catch (err) {
         showMsg('ตรวจสอบข้อมูลไม่สำเร็จ: ' + err.message);
         setStatus('เกิดข้อผิดพลาด');
-        // ── FIX #3: ให้ผู้ใช้กดลองใหม่ได้แทนที่จะค้างหน้าจอ ──
         document.getElementById('statusView').classList.add('hidden');
         document.getElementById('btnLineLogin').classList.remove('hidden');
         document.getElementById('btnLineLogin').disabled = false;
@@ -350,7 +345,6 @@
         if (!window.liff) throw new Error('LINE LIFF SDK ไม่สามารถโหลดได้');
         setStatus('กำลังเชื่อมต่อ LINE...');
         
-        // ── เพิ่ม timeout สำหรับ liff.init() เพื่อหลีกเลี่ยง hang ──
         const initPromise = ensureLiffInit();
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('LINE เชื่อมต่อช้า — กรุณาลองใหม่')), 8000)
@@ -384,8 +378,6 @@
       const btn = document.getElementById('btnLineLogin');
       btn.disabled = true; btn.textContent = 'กำลังเชื่อมต่อ...';
       try {
-        // ── FIX #1 (ต่อ): ใช้ ensureLiffInit() แทนการเรียก liff.init() ตรงๆ ──
-        // ถ้า startLineLogin() init ไปแล้ว จะได้ promise เดิม ไม่ init ซ้ำ
         await ensureLiffInit();
         liff.login({ redirectUri: window.location.href });
       } catch (err) {
@@ -394,20 +386,14 @@
       }
     });
 
-    // ✅──────────────────────────────────────────────────────────
-    // ปุ่มสร้างบัญชี — แก้ syntax Firebase v10 modular
-    // + FIX #2: ป้องกัน Anonymous Auth สร้างบัญชีซ้ำ
-    // + FIX #4: validate วันเกิดไม่ให้เป็นอนาคต
-    // + FIX #5: trim เบอร์โทรก่อน validate
-    // ✅──────────────────────────────────────────────────────────
-    let isRegistering = false; // กันกดซ้ำ/double-submit
+    let isRegistering = false;
 
     document.getElementById('btnRegister').addEventListener('click', async () => {
-      if (isRegistering) return; // ── FIX #2a: กันกดซ้ำตั้งแต่ทางเข้า ──
+      if (isRegistering) return;
       if (!lineProfile?.userId) return showMsg('ข้อมูล LINE หาย กรุณาลองใหม่');
 
       const displayName = document.getElementById('regName').value.trim() || lineProfile.displayName || 'LINE User';
-      const phone = document.getElementById('regPhone').value.trim(); // FIX #5
+      const phone = document.getElementById('regPhone').value.trim();
       const birthDate = document.getElementById('regBirthDate').value;
       const initialWeight = parseFloat(document.getElementById('regWeight').value) || null;
       const initialHeight = parseFloat(document.getElementById('regHeight').value) || null;
@@ -416,13 +402,13 @@
       if (!displayName) return showMsg('กรุณาระบุชื่อ-นามสกุล');
       if (!/^0[0-9]{9}$/.test(phone)) return showMsg('เบอร์โทรไม่ถูกต้อง (ต้องเป็น 0 ตามด้วยตัวเลข 9 ตัว ไม่มีช่องว่างหรือขีด)');
       if (!birthDate) return showMsg('กรุณาเลือกวันเดือนปีเกิด');
-      // ── FIX #4: validate วันเกิดไม่ให้เป็นวันที่ในอนาคต ──
+      
       const todayStr = new Date().toISOString().slice(0, 10);
       if (birthDate > todayStr) return showMsg('วันเดือนปีเกิดต้องไม่เกินวันนี้');
       if (!initialWeight || initialWeight < 20) return showMsg('กรุณาระบุน้ำหนักที่ถูกต้อง');
       if (!initialHeight || initialHeight < 50) return showMsg('กรุณาระบุส่วนสูงที่ถูกต้อง');
 
-      isRegistering = true; // ── FIX #2a ──
+      isRegistering = true;
       const btn = document.getElementById('btnRegister');
       btn.disabled = true; btn.textContent = 'กำลังสร้างบัญชี...';
 
@@ -430,8 +416,6 @@
       const now = new Date().toISOString();
 
       try {
-        // ── FIX #2b: เช็คอีกครั้งก่อนสมัครจริงว่ามีบัญชีนี้แล้วหรือยัง ──
-        // (กันเคส race condition / กดสมัครค้างไว้นานแล้วมีคนอื่น/แท็บอื่นสมัครไปก่อน)
         const existing = await findUserByLineId(lineUserId);
         if (existing) {
           saveLineSession(existing.id, existing.data, lineProfile);
@@ -439,16 +423,11 @@
           return;
         }
 
-        // ── Step 1: โหลด Firebase Auth ──
         const { getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
         if (!firebaseAuth) {
           firebaseAuth = getAuth();
         }
 
-        // ── FIX #2c: ใช้ anonymous user ที่มีอยู่แล้วถ้ามี แทนที่จะสร้างใหม่ทุกครั้ง ──
-        // เดิม: เรียก signInAnonymously() ทุกครั้งที่กดสมัคร -> ได้ uid ใหม่เสมอ
-        // ถ้ากดซ้ำ/รีเฟรชกลางทาง จะมี anonymous user หลายตัวกำพร้าใน Firebase Auth
-        // และเสี่ยงสร้าง user doc ซ้ำผูกกับ lineUid เดียวกัน
         let firebaseUid;
         try {
           if (firebaseAuth.currentUser) {
@@ -470,7 +449,6 @@
           throw new Error('การยืนยันตัวตนล้มเหลว: ' + authErr.message);
         }
 
-        // ── Step 2: เขียนข้อมูล — ใช้ Firebase UID เป็น document ID ──
         const userRef = doc(db, 'users', firebaseUid);
         const userData = {
           uid: firebaseUid,
@@ -489,9 +467,6 @@
           updatedAt: now,
         };
 
-        // ── FIX #2d: ใช้ transaction กัน race condition ตอนเขียนเอกสารจริง ──
-        // ถ้าระหว่างนี้มีอีกแท็บ/อุปกรณ์เขียน user doc เดียวกัน(เช่น uid เดิมจาก
-        // persisted anonymous session) ไปก่อนแล้ว จะไม่เขียนทับข้อมูลเดิมโดยไม่ตั้งใจ
         await runTransaction(db, async (tx) => {
           const snap = await tx.get(userRef);
           if (snap.exists()) {
@@ -502,7 +477,6 @@
         });
         console.log('✅ User doc written:', firebaseUid);
 
-        // ── Step 2.5: สร้าง bodyStats เริ่มต้นทันที (แก้ปัญหา profile ว่างสำหรับสมาชิกใหม่) ──
         try {
           await addDoc(collection(db, 'bodyStats'), {
             uid: firebaseUid,
@@ -521,7 +495,6 @@
           console.warn('⚠️ bodyStats init failed (non-critical):', bsErr.message);
         }
 
-        // ── Step 3: บันทึก session แล้ว redirect ──
         saveLineSession(firebaseUid, userData, lineProfile);
         window.location.href = redirect;
 
@@ -529,12 +502,10 @@
         console.error('❌ Registration error:', err);
         showMsg('สร้างบัญชีไม่สำเร็จ: ' + err.message);
         btn.disabled = false; btn.textContent = 'สร้างบัญชี';
-        isRegistering = false; // ── FIX #2a: ปลดล็อกให้กดใหม่ได้เมื่อ error ──
+        isRegistering = false;
       }
     });
 
-    // ── เริ่มต้นการเข้าสู่ระบบ ──
-    // ถ้า startLineLogin() ล้มเหลว ให้ error handler ใน startLineLogin() เอาใจใจ
     startLineLogin().catch(err => {
       console.error('⚠️ Unhandled error in startLineLogin:', err);
       document.getElementById('statusView').classList.add('hidden');
@@ -547,3 +518,4 @@
   </script>
 </body>
 </html>
+
