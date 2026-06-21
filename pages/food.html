@@ -226,19 +226,26 @@
   }, err => console.error('User profile listener failed:', err));
 
   const today = formatLocalDate(new Date());
-  const q = query(collection(db, 'foodLogs'), where('uid', '==', uid), where('date', '==', today));
-  onSnapshot(q, snap => {
-    const entries = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    latestTodayEntries = entries;
-    renderMeals(entries);
-    updateSummary(entries);
-  }, err => {
-    console.error('Food log listener failed:', err);
+  
+  // เพิ่ม guard ก่อน onSnapshot
+  if (!uid) {
     document.getElementById('mealSections').innerHTML =
-      `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดประวัติอาหารไม่สำเร็จ: ${err.message}</div>`;
-  });
+      `<div class="text-center text-red-400 py-8 font-bold text-sm">กรุณาเข้าสู่ระบบใหม่อีกครั้ง</div>`;
+  } else {
+    const q = query(collection(db, 'foodLogs'), where('uid', '==', uid), where('date', '==', today));
+    onSnapshot(q, snap => {
+      const entries = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      latestTodayEntries = entries;
+      renderMeals(entries);
+      updateSummary(entries);
+    }, err => {
+      console.error('Food log listener failed:', err);
+      document.getElementById('mealSections').innerHTML =
+        `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดประวัติอาหารไม่สำเร็จ: ${err.message}</div>`;
+    });
+  }
 
 function updateSummary(entries) {
   const total = entries.reduce((s, e) => s + (e.calories || 0), 0);
