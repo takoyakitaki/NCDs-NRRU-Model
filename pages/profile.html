@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>VitalVibe – โปรไฟล์</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     * { font-family:'Prompt',sans-serif; -webkit-tap-highlight-color:transparent; }
@@ -152,6 +153,82 @@
           class="w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white font-black py-3 rounded-2xl text-sm active:scale-95 transition shadow-md">
           💾 บันทึกสถิติร่างกาย
         </button>
+      </div>
+    </div>
+
+    <!-- บันทึกสถิติย้อนหลัง Section -->
+    <div class="bg-white border border-gray-100 rounded-3xl p-4 shadow-sm mb-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-black text-gray-800">📈 บันทึกสถิติย้อนหลัง</h3>
+        <span id="statsToggleIcon" class="text-xl transition-transform cursor-pointer" onclick="toggleStatsHistory()">▼</span>
+      </div>
+      
+      <!-- Tabs -->
+      <div id="statsHistoryContent" class="hidden">
+        <div class="flex gap-2 mb-4 border-b border-gray-100">
+          <button onclick="switchStatsTab('chart')" id="chartTab"
+            class="pb-3 px-3 font-bold text-sm border-b-2 border-violet-500 text-violet-600">
+            📊 กราฟ
+          </button>
+          <button onclick="switchStatsTab('table')" id="tableTab"
+            class="pb-3 px-3 font-bold text-sm border-b-2 border-transparent text-gray-400 hover:text-gray-600">
+            📋 ตาราง
+          </button>
+        </div>
+
+        <!-- Chart Tab -->
+        <div id="chartPanel" class="hidden">
+          <div class="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-4 mb-4">
+            <p class="text-xs text-gray-500 font-bold mb-3 uppercase">เลือกข้อมูลที่ต้องการดู</p>
+            <div class="flex flex-wrap gap-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="chartWeight" checked class="rounded" onchange="updateChart()">
+                <span class="text-xs font-bold text-gray-700">น้ำหนัก (kg)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="chartHeight" class="rounded" onchange="updateChart()">
+                <span class="text-xs font-bold text-gray-700">ส่วนสูง (cm)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="chartBMI" class="rounded" onchange="updateChart()">
+                <span class="text-xs font-bold text-gray-700">BMI</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="chartWaist" class="rounded" onchange="updateChart()">
+                <span class="text-xs font-bold text-gray-700">เอว (cm)</span>
+              </label>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl p-4 border border-gray-100">
+            <canvas id="statsChart" style="max-height: 300px;"></canvas>
+            <p id="chartEmpty" class="text-center text-gray-400 text-sm py-8 hidden">ยังไม่มีข้อมูล กรุณาบันทึกสถิติร่างกาย</p>
+          </div>
+        </div>
+
+        <!-- Table Tab -->
+        <div id="tablePanel" class="hidden">
+          <div class="bg-white rounded-2xl overflow-hidden border border-gray-100">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th class="px-3 py-2 text-left font-bold text-gray-700 text-xs">📅 วันที่</th>
+                    <th class="px-3 py-2 text-left font-bold text-gray-700 text-xs">⚖️ น้ำหนัก</th>
+                    <th class="px-3 py-2 text-left font-bold text-gray-700 text-xs">📏 ส่วนสูง</th>
+                    <th class="px-3 py-2 text-left font-bold text-gray-700 text-xs">📊 BMI</th>
+                    <th class="px-3 py-2 text-left font-bold text-gray-700 text-xs">🔗 เอว</th>
+                  </tr>
+                </thead>
+                <tbody id="statsTableBody" class="divide-y divide-gray-100">
+                  <tr class="text-center py-8">
+                    <td colspan="5" class="py-8 text-gray-400">กำลังโหลดข้อมูล...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p id="tableEmpty" class="text-center text-gray-400 text-sm py-8 hidden">ยังไม่มีข้อมูล กรุณาบันทึกสถิติร่างกาย</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -306,6 +383,7 @@
       await addDoc(collection(db, 'bodyStats'), data);
       alert('✅ บันทึกสถิติร่างกายสำเร็จ');
       loadBodyStats();
+      loadAllBodyStats();
       ['bs_height','bs_weight','bs_waist','bs_hip','bs_muscle','bs_bloodfat','bs_bloodsugar','bs_bloodpressure'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     } catch (err) { alert('บันทึกไม่สำเร็จ: ' + err.message); }
   };
@@ -356,12 +434,209 @@
     } catch (err) { console.error('Body stats error:', err); }
   }
 
+  let allBodyStats = [];
+  let statsChart = null;
+
+  // โหลดข้อมูลประวัติสถิติร่างกายทั้งหมด
+  async function loadAllBodyStats() {
+    try {
+      const q = query(collection(db, 'bodyStats'), where('uid', '==', uid), orderBy('createdAt', 'asc'));
+      const snap = await getDocs(q);
+      allBodyStats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('📈 All body stats loaded:', allBodyStats);
+      renderStatsTable();
+      updateChart();
+    } catch (err) {
+      console.error('Load all body stats error:', err);
+    }
+  }
+
+  // Toggle stats history section
+  window.toggleStatsHistory = () => {
+    const c = document.getElementById('statsHistoryContent');
+    const i = document.getElementById('statsToggleIcon');
+    c.classList.toggle('hidden');
+    i.style.transform = c.classList.contains('hidden') ? '' : 'rotate(180deg)';
+    if (!c.classList.contains('hidden')) {
+      // Show chart tab by default when opening
+      if (document.getElementById('chartPanel').classList.contains('hidden')) {
+        window.switchStatsTab('chart');
+      }
+      if (allBodyStats.length === 0) {
+        loadAllBodyStats();
+      }
+    }
+  };
+
+  // Switch between chart and table tabs
+  window.switchStatsTab = (tab) => {
+    const chartPanel = document.getElementById('chartPanel');
+    const tablePanel = document.getElementById('tablePanel');
+    const chartTab = document.getElementById('chartTab');
+    const tableTab = document.getElementById('tableTab');
+
+    if (tab === 'chart') {
+      chartPanel.classList.remove('hidden');
+      tablePanel.classList.add('hidden');
+      chartTab.classList.remove('text-gray-400', 'border-transparent', 'hover:text-gray-600');
+      chartTab.classList.add('border-violet-500', 'text-violet-600');
+      tableTab.classList.remove('border-violet-500', 'text-violet-600');
+      tableTab.classList.add('text-gray-400', 'border-transparent', 'hover:text-gray-600');
+      // Trigger chart resize
+      setTimeout(() => {
+        if (statsChart) statsChart.resize();
+      }, 100);
+    } else if (tab === 'table') {
+      chartPanel.classList.add('hidden');
+      tablePanel.classList.remove('hidden');
+      tableTab.classList.remove('text-gray-400', 'border-transparent', 'hover:text-gray-600');
+      tableTab.classList.add('border-violet-500', 'text-violet-600');
+      chartTab.classList.remove('border-violet-500', 'text-violet-600');
+      chartTab.classList.add('text-gray-400', 'border-transparent', 'hover:text-gray-600');
+    }
+  };
+
+  // Render stats table
+  function renderStatsTable() {
+    const tbody = document.getElementById('statsTableBody');
+    const empty = document.getElementById('tableEmpty');
+
+    if (allBodyStats.length === 0) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+    tbody.innerHTML = allBodyStats.map((stat, idx) => {
+      const date = new Date(stat.createdAt);
+      const dateStr = date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+      const weight = stat.weight ? `${stat.weight} kg` : '–';
+      const height = stat.height ? `${stat.height} cm` : '–';
+      const bmi = stat.weight && stat.height ? (stat.weight / ((stat.height / 100) ** 2)).toFixed(1) : '–';
+      const waist = stat.waist ? `${stat.waist} cm` : '–';
+
+      return `
+        <tr class="hover:bg-gray-50 transition">
+          <td class="px-3 py-2.5 text-xs font-bold text-gray-700">${dateStr}</td>
+          <td class="px-3 py-2.5 text-xs font-bold text-amber-600">${weight}</td>
+          <td class="px-3 py-2.5 text-xs font-bold text-sky-600">${height}</td>
+          <td class="px-3 py-2.5 text-xs font-bold text-emerald-600">${bmi}</td>
+          <td class="px-3 py-2.5 text-xs font-bold text-purple-600">${waist}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Update and render chart
+  window.updateChart = () => {
+    if (allBodyStats.length === 0) {
+      document.getElementById('chartEmpty').classList.remove('hidden');
+      document.getElementById('statsChart').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('chartEmpty').classList.add('hidden');
+    document.getElementById('statsChart').style.display = 'block';
+
+    const showWeight = document.getElementById('chartWeight').checked;
+    const showHeight = document.getElementById('chartHeight').checked;
+    const showBMI = document.getElementById('chartBMI').checked;
+    const showWaist = document.getElementById('chartWaist').checked;
+
+    const labels = allBodyStats.map(s => new Date(s.createdAt).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' }));
+    
+    const datasets = [];
+    if (showWeight) {
+      datasets.push({
+        label: 'น้ำหนัก (kg)',
+        data: allBodyStats.map(s => s.weight),
+        borderColor: '#d97706',
+        backgroundColor: 'rgba(217, 119, 6, 0.05)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      });
+    }
+    if (showHeight) {
+      datasets.push({
+        label: 'ส่วนสูง (cm)',
+        data: allBodyStats.map(s => s.height),
+        borderColor: '#0ea5e9',
+        backgroundColor: 'rgba(14, 165, 233, 0.05)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      });
+    }
+    if (showBMI) {
+      datasets.push({
+        label: 'BMI',
+        data: allBodyStats.map(s => s.weight && s.height ? (s.weight / ((s.height / 100) ** 2)).toFixed(1) : null),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      });
+    }
+    if (showWaist) {
+      datasets.push({
+        label: 'รอบเอว (cm)',
+        data: allBodyStats.map(s => s.waist),
+        borderColor: '#a855f7',
+        backgroundColor: 'rgba(168, 85, 247, 0.05)',
+        tension: 0.3,
+        fill: false,
+        borderDash: [5, 5],
+        pointRadius: 4,
+        pointHoverRadius: 6
+      });
+    }
+
+    const ctx = document.getElementById('statsChart').getContext('2d');
+    if (statsChart) statsChart.destroy();
+    statsChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { usePointStyle: true, padding: 15, font: { family: "'Prompt', sans-serif", size: 11, weight: 'bold' } }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: { font: { family: "'Prompt', sans-serif", size: 10 } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: "'Prompt', sans-serif", size: 10 } }
+          }
+        }
+      }
+    });
+  };
+
   window.logout = async () => {
     if (!confirm('ออกจากระบบ?')) return;
     await signOut(auth); clearSession(); window.location.href = '/login.html';
   };
 
+  // Initialize
+  document.getElementById('chartPanel').classList.add('hidden');
+  document.getElementById('tablePanel').classList.add('hidden');
   loadBodyStats();
+  loadAllBodyStats();
 </script>
 </body>
 </html>
