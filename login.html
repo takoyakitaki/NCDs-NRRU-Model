@@ -183,20 +183,7 @@
     const redirect = (requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//'))
       ? requestedRedirect : '/pages/food.html';
 
-    // ──────────────────────────────────────────────────────────
-    // 🔑 Build proper redirect URI for LINE OAuth
-    // When inside LINE app, window.location.href returns invalid URL
-    // So we build absolute HTTPS URL from protocol, host, pathname
-    // ──────────────────────────────────────────────────────────
-    function getLineRedirectUri() {
-      const protocol = window.location.protocol === 'http:' ? 'http:' : 'https:';
-      const host = window.location.host;
-      const path = window.location.pathname || '/login.html';
-      const search = window.location.search;
-      return `${protocol}//${host}${path}${search}`;
-    }
-    const lineRedirectUri = getLineRedirectUri();
-    console.log('🔐 LINE redirect URI:', lineRedirectUri);
+
 
     let lineProfile = null;
     let firebaseAuth = null;
@@ -355,35 +342,27 @@
       try {
         if (!window.liff) throw new Error('LINE LIFF SDK ไม่สามารถโหลดได้');
         setStatus('กำลังเชื่อมต่อ LINE...');
-        console.log('🔐 Starting LINE login process...');
         
         const initPromise = ensureLiffInit();
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('LINE เชื่อมต่อช้า — กรุณาลองใหม่')), 8000)
         );
-        
         await Promise.race([initPromise, timeoutPromise]);
-        console.log('✅ LIFF initialized successfully');
-        console.log('📱 LINE client?:', liff.isInClient());
-        console.log('🔑 Already logged in?:', liff.isLoggedIn());
         
         if (!liff.isLoggedIn()) {
           if (liff.isInClient()) {
-            console.log('📱 Inside LINE app, starting login with redirect URI:', lineRedirectUri);
-            liff.login({ redirectUri: lineRedirectUri });
-            return;
+            // ✅ ใน LINE App: ไม่ส่ง redirectUri — LIFF จัดการเอง
+            console.log('📱 Inside LINE app, login without redirectUri');
+            liff.login();
           } else {
-            console.log('🌐 Not in LINE app, showing manual login button');
+            // ✅ External browser: ส่ง redirectUri ปกติได้
             document.getElementById('statusView').classList.add('hidden');
             document.getElementById('btnLineLogin').classList.remove('hidden');
             setStatus('กรุณากดปุ่มด้านล่าง');
-            return;
           }
+          return;
         }
-        
-        console.log('✅ Already logged in, fetching profile...');
         const profile = await liff.getProfile();
-        console.log('👤 LINE profile:', profile);
         await continueWithLineProfile(profile);
       } catch (err) {
         console.error('❌ startLineLogin error:', err);
@@ -398,14 +377,16 @@
 
     document.getElementById('btnLineLogin').addEventListener('click', async () => {
       const btn = document.getElementById('btnLineLogin');
-      btn.disabled = true; btn.textContent = 'กำลังเชื่อมต่อ...';
+      btn.disabled = true; 
+      btn.textContent = 'กำลังเชื่อมต่อ...';
       try {
         await ensureLiffInit();
-        console.log('📱 LINE login button clicked, using redirect URI:', lineRedirectUri);
-        liff.login({ redirectUri: lineRedirectUri });
+        // ✅ External browser: window.location.href ถูกต้อง
+        liff.login({ redirectUri: window.location.href });
       } catch (err) {
         showMsg(err.message);
-        btn.disabled = false; btn.textContent = 'เข้าสู่ระบบด้วย LINE';
+        btn.disabled = false; 
+        btn.textContent = 'เข้าสู่ระบบด้วย LINE';
       }
     });
 
@@ -531,30 +512,12 @@
 
     startLineLogin().catch(err => {
       console.error('⚠️ Unhandled error in startLineLogin:', err);
-      console.error('Error details:', {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        statusCode: err.statusCode,
-      });
       document.getElementById('statusView').classList.add('hidden');
       document.getElementById('btnLineLogin').classList.remove('hidden');
       document.getElementById('btnLineLogin').disabled = false;
       document.getElementById('btnLineLogin').textContent = 'ลองใหม่';
       setStatus('เกิดข้อผิดพลาด');
-      
-      // Show more specific error messages
-      let errorMsg = 'เข้าสู่ระบบล้มเหลว กรุณาลองใหม่';
-      if (err.message.includes('400')) {
-        errorMsg = '❌ Bad Request (400) - ตรวจสอบ LIFF ID ในไฟล์ lib/firebase.js';
-      } else if (err.message.includes('401')) {
-        errorMsg = '❌ Unauthorized (401) - ข้อมูล LINE ไม่ถูกต้อง';
-      } else if (err.message.includes('403')) {
-        errorMsg = '❌ Forbidden (403) - ไม่มีสิทธิ์เข้าถึง LINE';
-      } else if (err.message.includes('LIFF SDK')) {
-        errorMsg = '❌ LINE SDK ไม่สามารถโหลดได้ - ตรวจสอบอินเทอร์เน็ต';
-      }
-      showMsg(errorMsg);
+      showMsg('เข้าสู่ระบบล้มเหลว กรุณาลองใหม่');
     });
   </script>
 </body>
