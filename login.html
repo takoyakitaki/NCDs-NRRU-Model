@@ -299,7 +299,7 @@
       });
     }
 
-    async function continueWithLineProfile(profile) {
+        async function continueWithLineProfile(profile) {
       if (!profile?.userId) { showMsg('ไม่ได้รับข้อมูล LINE Profile'); setStatus('ข้อมูล LINE ไม่ครบ'); return; }
       renderProfile(profile);
       setStatus('กำลังตรวจสอบการลงทะเบียน...');
@@ -310,6 +310,28 @@
           showRegister(profile);
           return;
         }
+
+        // ── 🔥 ส่วนที่เพิ่มใหม่: จัดการ Firebase Auth สำหรับ Returning User ──
+        const { getAuth, signInWithCustomToken, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+        if (!firebaseAuth) firebaseAuth = getAuth();
+
+        // ถ้ายังไม่ได้ล็อกอินอยู่ (เคส LINE In-App Browser ที่ล้าง Session ไปแล้ว)
+        if (!firebaseAuth.currentUser) {
+          try {
+            // 🌟 วิธีที่ถูกต้องที่สุด: ขอ Custom Token จาก Cloud Function เพื่อกู้ UID เดิม
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
+            const generateToken = httpsCallable(getFunctions(), 'generateLineAuthToken');
+            const result = await generateToken({ lineUid: profile.userId });
+            await signInWithCustomToken(firebaseAuth, result.data.token);
+            console.log('✅ Signed in with Custom Token (UID restored)');
+          } catch (customTokenErr) {
+            console.warn('⚠️ Custom Token failed, falling back to Anonymous (UID will change!):', customTokenErr.message);
+            // ⚠️ Fallback: ถ้ายังไม่มี Cloud Function ให้ใช้บรรทัดนี้ก่อน (แต่ข้อมูลเก่าจะอ่านไม่ออกเพราะ UID เปลี่ยน)
+            await signInAnonymously(firebaseAuth);
+          }
+        }
+        // ── จบส่วนที่แก้ไข ──
+
         saveLineSession(user.id, user.data, profile);
         window.location.href = redirect;
       } catch (err) {
