@@ -22,29 +22,31 @@
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
-<div class="h-full w-full max-w-md mx-auto bg-white shadow-2xl relative flex flex-col">
+<div class="h-dvh w-screen sm:w-full sm:max-w-none bg-white relative flex flex-col">
+  <!-- Responsive container wrapper -->
+  <div class="flex-1 flex flex-col w-full max-w-full overflow-hidden">
 
-  <!-- Header -->
-  <div class="flex-shrink-0 pt-12 pb-3 px-5 bg-white border-b border-gray-100">
-    <div class="flex items-center justify-between mb-3">
-      <h1 class="text-2xl font-black text-gray-900">🏆 ภารกิจ</h1>
-      <div class="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1">
-        <span class="text-base">⭐</span>
-        <span id="myPoints" class="font-black text-yellow-600 text-sm">0</span>
-        <span class="text-xs opacity-75">แต้ม</span>
+    <!-- Header -->
+    <div class="flex-shrink-0 pt-8 sm:pt-6 pb-3 px-5 bg-white border-b border-gray-100 sm:border-b-2">
+      <div class="flex items-center justify-between mb-3">
+        <h1 class="text-xl sm:text-2xl font-black text-gray-900 truncate">🏆 ภารกิจ</h1>
+        <div class="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1 flex-shrink-0">
+          <span class="text-base">⭐</span>
+          <span id="myPoints" class="font-black text-yellow-600 text-sm">0</span>
+          <span class="text-xs opacity-75">แต้ม</span>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div class="grid grid-cols-4 gap-1 bg-gray-100 rounded-2xl p-1">
+        <button id="tabMissions"    onclick="switchTab('missions')"    class="tab-active py-2 rounded-xl text-xs font-black transition">🏆 ภารกิจ</button>
+        <button id="tabLeaderboard" onclick="switchTab('leaderboard')" class="tab-inactive py-2 rounded-xl text-xs font-black transition">🏅 Ranking</button>
+        <button id="tabRewards"     onclick="switchTab('rewards')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">🎁 รางวัล</button>
+        <button id="tabHistory"     onclick="switchTab('history')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">📜 ประวัติ</button>
       </div>
     </div>
-    <!-- Tabs -->
-    <div class="grid grid-cols-4 gap-1 bg-gray-100 rounded-2xl p-1">
-      <button id="tabMissions"    onclick="switchTab('missions')"    class="tab-active py-2 rounded-xl text-xs font-black transition">🏆 ภารกิจ</button>
-      <button id="tabLeaderboard" onclick="switchTab('leaderboard')" class="tab-inactive py-2 rounded-xl text-xs font-black transition">🏅 Ranking</button>
-      <button id="tabRewards"     onclick="switchTab('rewards')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">🎁 รางวัล</button>
-      <button id="tabHistory"     onclick="switchTab('history')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">📜 ประวัติ</button>
-    </div>
-  </div>
 
-  <!-- Scroll area -->
-  <div class="flex-1 overflow-y-auto hide-scrollbar" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px) + 5rem)">
+    <!-- Scroll area -->
+    <div class="flex-1 overflow-y-auto hide-scrollbar px-0 pb-20 sm:pb-6">
 
     <!-- Panel: Missions -->
     <div id="panelMissions" class="px-5 pt-4 space-y-3">

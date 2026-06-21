@@ -15,9 +15,37 @@
     .fade-in{animation:fadeIn .4s ease-out forwards}
     @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
     .analyzing{animation:pulse 1s ease-in-out infinite}
-    html, body { height: 100%; height: 100dvh; width: 100%; }
-    body { margin: 0; padding: 0; }
-    @keyframes spin{to{transform:rotate(360deg)}} .spinner{animation:spin .8s linear infinite}
+    
+    /* Responsive viewport height */
+    html { 
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
+    }
+    
+    body { 
+      margin: 0; 
+      padding: 0;
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
+      overflow: hidden;
+    }
+    
+    /* Responsive app container */
+    #app {
+      margin: 0 auto;
+    }
+    
+    @media (min-width: 640px) {
+      #app {
+        max-width: 100%;
+        box-shadow: none;
+      }
+    }
+    
+    @keyframes spin{to{transform:rotate(360deg)}} 
+    .spinner{animation:spin .8s linear infinite}
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
@@ -38,16 +66,19 @@
   </button>
 </div>
 
-<div id="app" class="hidden h-full w-full max-w-md mx-auto bg-white shadow-2xl relative flex flex-col">
-
-  <!-- Header -->
-  <div class="flex-shrink-0 pt-12 pb-4 px-5 bg-white border-b border-gray-100">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-black text-gray-900">🍱 บันทึกการรับประทานอาหาร</h1>
+<div id="app" class="hidden h-dvh w-screen sm:w-full sm:max-w-none bg-white relative flex flex-col">
+  
+  <!-- Responsive container wrapper -->
+  <div class="flex-1 flex flex-col w-full max-w-full overflow-hidden">
+    
+    <!-- Header -->
+    <div class="flex-shrink-0 pt-8 sm:pt-6 pb-4 px-5 bg-white border-b border-gray-100 sm:border-b-2">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <h1 class="text-xl sm:text-2xl font-black text-gray-900 truncate">🍱 บันทึกการรับประทานอาหาร</h1>
+        </div>
+        <div id="userAvatar" class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-xl cursor-pointer flex-shrink-0"></div>
       </div>
-      <div id="userAvatar" class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-xl cursor-pointer"></div>
-    </div>
 
     <!-- Calorie summary bar -->
     <div class="mt-4 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-2xl p-4 text-white relative">
@@ -69,30 +100,34 @@
       </div>
       <p id="calorieAlert" class="hidden mt-2 text-xs font-bold bg-white/20 rounded-xl px-3 py-2"></p>
     </div>
-  </div>
+    </div>
 
-  <!-- Scroll area -->
-  <div class="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-4" id="scrollArea">
-    <button onclick="openCamera()"
-      class="w-full flex items-center gap-4 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-3xl p-5 text-white shadow-lg active:scale-[0.98] transition mb-6">
-      <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl flex-shrink-0">📷</div>
-      <div class="text-left flex-1">
-        <span class="font-black text-lg block">ถ่ายรูปอาหาร</span>
-        <span class="text-sm opacity-75">Gemini จะวิเคราะห์แคลอรีและสารอาหารให้</span>
-      </div>
-      <span class="text-2xl opacity-50 flex-shrink-0">›</span>
-    </button>
-    <div id="mealSections" class="space-y-4"></div>
+    <!-- Scroll area -->
+    <div class="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-20 sm:pb-6" id="scrollArea">
+      <button onclick="openCamera()"
+        class="w-full flex items-center gap-4 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-3xl p-5 text-white shadow-lg active:scale-[0.98] transition mb-6 hover:shadow-xl">
+        <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl flex-shrink-0">📷</div>
+        <div class="text-left flex-1 min-w-0">
+          <span class="font-black text-lg block truncate">ถ่ายรูปอาหาร</span>
+          <span class="text-sm opacity-75 block truncate">Gemini จะวิเคราะห์แคลอรีและสารอาหารให้</span>
+        </div>
+        <span class="text-2xl opacity-50 flex-shrink-0">›</span>
+      </button>
+      <div id="mealSections" class="space-y-4"></div>
+    </div>
   </div>
-
-  <!-- Nav -->
-  <nav class="flex-shrink-0 w-full bg-white/95 backdrop-blur border-t border-gray-100 flex items-center justify-around pb-safe z-50 shadow-2xl" style="min-height:calc(3.5rem + max(0.5rem, env(safe-area-inset-bottom, 0px)))">
-    <a href="food.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-teal-500 flex-1 justify-center"><span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
-    <a href="reminders.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">⏰</span><span class="text-[10px] font-bold">เตือน</span></a>
-    <a href="missions.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">🏆</span><span class="text-[10px] font-bold">ภารกิจ</span></a>
-    <a href="profile.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">👤</span><span class="text-[10px] font-bold">โปรไฟล์</span></a>
-  </nav>
 </div>
+
+<!-- Bottom Navbar (only on mobile) -->
+<nav id="mobileNav" class="fixed bottom-0 left-0 right-0 z-50
+     w-screen sm:hidden
+     bg-white/95 backdrop-blur border-t border-gray-100
+     flex items-center justify-around pb-safe shadow-2xl">
+  <a href="food.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-teal-500 hover:bg-teal-50 transition"><span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
+  <a href="reminders.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">⏰</span><span class="text-[10px] font-bold">เตือน</span></a>
+  <a href="missions.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏆</span><span class="text-[10px] font-bold">ภารกิจ</span></a>
+  <a href="profile.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">👤</span><span class="text-[10px] font-bold">โปรไฟล์</span></a>
+</nav>
 
 <!-- Camera / Analyze Modal -->
 <div id="cameraModal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4">

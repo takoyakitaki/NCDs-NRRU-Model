@@ -1,53 +1,111 @@
 <!--
   components/nav.html
   ─────────────────────────────────────────────────────────────
-  Copy-paste this <nav> block into every page (food / health /
-  reminders / missions / profile).  Update the `data-page` attribute on the
-  matching <a> so it gets the active highlight.
+  Bottom navigation bar that's responsive across all devices.
+  On mobile: stays at bottom
+  On tablet/desktop: adapts to wider screens
   ─────────────────────────────────────────────────────────────
 -->
 <nav id="bottomNav"
-     class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md
+     class="fixed bottom-0 left-0 right-0 z-50
+            w-screen sm:w-full sm:max-w-none
             bg-white/95 backdrop-blur border-t border-gray-100
-            flex items-center justify-around pb-safe z-50 shadow-2xl">
+            flex items-center justify-around pb-safe shadow-2xl
+            sm:border-l sm:border-r">
 
   <a href="/pages/food.html" data-page="food"
-     class="nav-item flex flex-col items-center py-2 px-2 gap-0.5">
-    <span class="text-xl">🍱</span>
-    <span class="text-[10px] font-bold">อาหาร</span>
+     class="nav-item flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center hover:bg-teal-50 transition">
+    <span class="text-2xl sm:text-xl">🍱</span>
+    <span class="text-[10px] sm:text-xs font-bold">อาหาร</span>
   </a>
 
   <a href="/pages/health.html" data-page="health"
-     class="nav-item flex flex-col items-center py-2 px-2 gap-0.5">
-    <span class="text-xl">📋</span>
-    <span class="text-[10px] font-bold">สุขภาพ</span>
+     class="nav-item flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center hover:bg-teal-50 transition">
+    <span class="text-2xl sm:text-xl">📋</span>
+    <span class="text-[10px] sm:text-xs font-bold">สุขภาพ</span>
   </a>
 
   <a href="/pages/reminders.html" data-page="reminders"
-     class="nav-item flex flex-col items-center py-2 px-2 gap-0.5">
-    <span class="text-xl">⏰</span>
-    <span class="text-[10px] font-bold">เตือน</span>
+     class="nav-item flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center hover:bg-teal-50 transition">
+    <span class="text-2xl sm:text-xl">⏰</span>
+    <span class="text-[10px] sm:text-xs font-bold">เตือน</span>
   </a>
 
   <a href="/pages/missions.html" data-page="missions"
-     class="nav-item flex flex-col items-center py-2 px-2 gap-0.5">
-    <span class="text-xl">🏆</span>
-    <span class="text-[10px] font-bold">ภารกิจ</span>
+     class="nav-item flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center hover:bg-teal-50 transition">
+    <span class="text-2xl sm:text-xl">🏆</span>
+    <span class="text-[10px] sm:text-xs font-bold">ภารกิจ</span>
   </a>
 
   <a href="/pages/profile.html" data-page="profile"
-     class="nav-item flex flex-col items-center py-2 px-2 gap-0.5">
-    <span class="text-xl">👤</span>
-    <span class="text-[10px] font-bold">โปรไฟล์</span>
+     class="nav-item flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center hover:bg-teal-50 transition">
+    <span class="text-2xl sm:text-xl">👤</span>
+    <span class="text-[10px] sm:text-xs font-bold">โปรไฟล์</span>
   </a>
 </nav>
 
 <style>
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
-  .nav-item { color: #9ca3af; transition: color .15s; }
-  .nav-item.active,
-  .nav-item:hover  { color: #14b8a6; }
-  .nav-item.active span:first-child { filter: drop-shadow(0 0 6px #14b8a655); }
+  
+  .nav-item { 
+    color: #9ca3af; 
+    transition: color .15s, background-color .15s; 
+    min-height: 60px;
+  }
+  
+  .nav-item.active {
+    color: #14b8a6;
+    background-color: rgba(20, 184, 166, 0.05);
+  }
+  
+  .nav-item:hover {
+    color: #14b8a6;
+  }
+  
+  .nav-item.active span:first-child { 
+    filter: drop-shadow(0 0 6px #14b8a655); 
+  }
+  
+  /* Responsive sizing */
+  @media (max-width: 640px) {
+    #bottomNav {
+      height: calc(60px + max(0.5rem, env(safe-area-inset-bottom, 0px)));
+      padding: 0;
+      margin: 0;
+    }
+  }
+  
+  @media (min-width: 641px) {
+    #bottomNav {
+      left: auto;
+      right: auto;
+      bottom: auto;
+      top: 0;
+      flex-direction: row;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      padding: 0;
+      border-top: none;
+      border-bottom: 1px solid #f3f4f6;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .nav-item {
+      min-height: auto;
+      padding: 0.75rem 1rem !important;
+      flex-direction: row;
+      gap: 0.5rem;
+    }
+    
+    .nav-item span:first-child {
+      font-size: 1.25rem;
+    }
+    
+    .nav-item span:last-child {
+      display: inline;
+    }
+  }
 </style>
 
 <script>
