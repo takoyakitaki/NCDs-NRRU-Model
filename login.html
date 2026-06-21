@@ -308,23 +308,22 @@
           return;
         }
 
-        const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+        const { getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
         if (!firebaseAuth) firebaseAuth = getAuth();
 
+        // ✅ For returning users: just sign in with anonymous auth (simple & no Cloud Functions needed)
         if (!firebaseAuth.currentUser) {
           try {
-            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js');
-            const generateToken = httpsCallable(getFunctions(), 'generateLineAuthToken');
-            const result = await generateToken({ lineUid: profile.userId });
-            await signInWithCustomToken(firebaseAuth, result.data.token);
-            console.log('✅ Signed in with Custom Token (UID restored)');
-          } catch (customTokenErr) {
-            console.error('❌ Custom Token failed:', customTokenErr.message);
-            // ✅ FIX: เอา signInAnonymously ออกเพื่อป้องกัน UID Mismatch และส่ง Error ไปจัดการที่ catch หลัก
-            throw new Error('ไม่สามารถดึงข้อมูลยืนยันตัวตนเดิมได้ (Cloud Functions มีปัญหา) กรุณาลองใหม่อีกครั้ง');
+            const cred = await signInAnonymously(firebaseAuth);
+            console.log('✅ Anonymous auth OK for returning user, new UID:', cred.user.uid);
+          } catch (authErr) {
+            console.error('❌ Anonymous auth failed for returning user:', authErr.message);
+            throw new Error('ไม่สามารถยืนยันตัวตนได้ กรุณาลองใหม่อีกครั้ง');
           }
         }
 
+        // Save the session with the user's original Firestore UID
+        // App will handle UID sync in the food.html auth check
         saveLineSession(user.id, user.data, profile);
         window.location.href = redirect;
       } catch (err) {
