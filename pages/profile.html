@@ -183,6 +183,9 @@
   if (!session) await new Promise(() => {});
   const uid = session.uid;
 
+  console.log('👤 Profile page loaded for UID:', uid);
+  console.log('📱 Session info:', { displayName: session.displayName, phone: session.phone, birthDate: session.birthDate });
+
   // ค.ศ. → พ.ศ.
   function toBE(ceStr) {
     if (!ceStr) return '–';
@@ -218,6 +221,7 @@
   // โหลดข้อมูล user — แสดงเท่านั้น ไม่มีฟอร์มแก้ไข
   onSnapshot(doc(db, 'users', uid), snap => {
     const d = snap.data() || {};
+    console.log('📋 Profile data loaded:', { uid, data: d });
 
     document.getElementById('profileName').textContent = d.displayName || session.displayName || '–';
     document.getElementById('profilePhone').textContent = d.phone ? `📱 ${d.phone}` : '–';
@@ -226,13 +230,17 @@
     // walletDisplay ถูกลบออกพร้อม Rewards section แล้ว — ไม่ต้อง set
 
     // ข้อมูลส่วนตัว
-    document.getElementById('infoBirthDate').textContent = toBE(d.birthDate);
-    const age = calcAge(d.birthDate);
+    const birthDate = d.birthDate || (session && session.birthDate);
+    const height = d.initialHeight || (session && session.initialHeight);
+    const weight = d.initialWeight || (session && session.initialWeight);
+    
+    document.getElementById('infoBirthDate').textContent = toBE(birthDate);
+    const age = calcAge(birthDate);
     document.getElementById('infoAge').textContent = age !== null ? `อายุ ${age} ปี` : '–';
-    document.getElementById('infoHeight').textContent = d.initialHeight ? `${d.initialHeight} cm` : '–';
-    document.getElementById('infoWeight').textContent = d.initialWeight ? `${d.initialWeight} kg` : '–';
+    document.getElementById('infoHeight').textContent = height ? `${height} cm` : '–';
+    document.getElementById('infoWeight').textContent = weight ? `${weight} kg` : '–';
 
-    const bmi = calcBMI(d.initialWeight, d.initialHeight);
+    const bmi = calcBMI(weight, height);
     if (bmi) {
       document.getElementById('infoBMI').textContent = bmi.value;
       document.getElementById('infoBMILabel').textContent = bmi.label;
@@ -309,12 +317,19 @@
       let l = null;
       if (!snap.empty) {
         l = snap.docs[0].data();
+        console.log('✅ Latest bodyStats found:', l);
       } else {
         // Fallback: ดึงจาก users.initialHeight / initialWeight สำหรับสมาชิกใหม่
         const userSnap = await getDoc(doc(db, 'users', uid));
         const u = userSnap.data() || {};
+        console.log('📊 User doc for bodyStats fallback:', u);
         if (u.initialHeight || u.initialWeight) {
           l = { height: u.initialHeight || null, weight: u.initialWeight || null };
+          console.log('↪️ Using initial measurements from user doc:', l);
+        } else if (session.initialHeight || session.initialWeight) {
+          // Fallback to session data
+          l = { height: session.initialHeight || null, weight: session.initialWeight || null };
+          console.log('↪️ Using initial measurements from session:', l);
         }
       }
       if (l) {
@@ -335,6 +350,8 @@
         if (l.bloodfat)      document.getElementById('bs_bloodfat').value = l.bloodfat;
         if (l.bloodsugar)    document.getElementById('bs_bloodsugar').value = l.bloodsugar;
         if (l.bloodpressure) document.getElementById('bs_bloodpressure').value = l.bloodpressure;
+      } else {
+        console.log('⚠️ No body stats or user data found, fields will remain empty');
       }
     } catch (err) { console.error('Body stats error:', err); }
   }
