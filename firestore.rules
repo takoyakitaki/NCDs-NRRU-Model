@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────────────────────
+    // Helper: check if the requester owns the document
+    // All docs have a `uid` field matching the owner's LINE userId
+    // (which is also used as doc ID in the users collection)
+    // ──────────────────────────────────────────────────────────────
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isFieldOwner() {
+      return request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
+    function isNewFieldOwner() {
+      return request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Users collection
+    // Doc ID = LINE userId (e.g., "U123456789...")
+    // Owner can read/write their own doc
+    // For registration (create): allow if auth.uid matches doc ID
+    // ──────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Food Logs collection
+    // Each entry has a `uid` field matching the owner's LINE userId
+    // ──────────────────────────────────────────────────────────────
+    match /foodLogs/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update, delete: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Health Logs collection
+    // ──────────────────────────────────────────────────────────────
+    match /healthLogs/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update, delete: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Body Stats collection
+    // ──────────────────────────────────────────────────────────────
+    match /bodyStats/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update, delete: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Reminders collection
+    // ──────────────────────────────────────────────────────────────
+    match /reminders/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update, delete: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Mission Completions collection
+    // ──────────────────────────────────────────────────────────────
+    match /missionCompletions/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update, delete: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Redemptions collection
+    // ──────────────────────────────────────────────────────────────
+    match /redemptions/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update, delete: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Transactions collection
+    // ──────────────────────────────────────────────────────────────
+    match /transactions/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Daily Calorie Summaries collection (doc ID format: {uid}_{date})
+    // ──────────────────────────────────────────────────────────────
+    match /dailyCalorieSummaries/{docId} {
+      allow read: if isFieldOwner();
+      allow create, update: if isNewFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Calorie Notifications collection
+    // ──────────────────────────────────────────────────────────────
+    match /calorieNotifications/{docId} {
+      allow read: if isFieldOwner();
+      allow create: if isNewFieldOwner();
+      allow update: if isFieldOwner();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Public collections (readable by everyone, only admin writes)
+    // ──────────────────────────────────────────────────────────────
+    match /missions/{docId} {
+      allow read: if request.auth != null;
+      // Admin writes via admin UI will use Firebase Admin SDK (bypass rules)
+      allow write: if false;
+    }
+
+    match /rewards/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Leaderboard collection
+    // Allow read for all authenticated users, write only from
+    // Cloud Functions using Admin SDK
+    // ──────────────────────────────────────────────────────────────
+    match /leaderboard/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Deny everything else by default
+    // ──────────────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

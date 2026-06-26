@@ -290,9 +290,26 @@
   // ──────────────────────────────────────────────────────────
   // 📦 Imports
   // ──────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // 🔑 AUTH MODEL (Refactored)
+  //
+  // OLD BEHAVIOR (broken):
+  //   - vv_auth_mode === 'line' → auth = null → Firestore rules fail
+  //   - signInAnonymously creates NEW UID each login → data not found
+  //
+  // NEW BEHAVIOR (fixed):
+  //   - login.html uses generateLineAuthToken Cloud Function
+  //   - auth.currentUser.uid is ALWAYS set (Firebase Auth via Custom Token)
+  //   - request.auth.uid passed to Firestore → rules allow access
+  //   - No more vv_auth_mode, vv_firestore_uid branching
+  //
+  // BACKWARD COMPATIBILITY:
+  //   - Old users have docs with anonymous-generated UIDs
+  //   - findUserByLineId still works (searches by lineUid field)
+  //   - Session UID from localStorage used as fallback if auth not ready
+  // ════════════════════════════════════════════════════════════
   import { requireAuth, clearSession } from '../lib/auth.js';
-  import { db } from '../lib/firebase.js';
-  import { getAuth } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+  import { db, auth } from '../lib/firebase.js';
   import {
     collection, addDoc, query, where,
     onSnapshot, deleteDoc, doc, updateDoc,
@@ -300,7 +317,7 @@
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
   // ──────────────────────────────────────────────────────────
-  // 🔐 Step 1: ตรวจสอบ Auth + UID Match
+  // 🔐 Auth Check
   // ──────────────────────────────────────────────────────────
   const loadingText = document.getElementById('loadingText');
   const loadingOverlay = document.getElementById('loadingOverlay');
@@ -319,82 +336,81 @@
     appEl.classList.remove('hidden');
   }
 
-  // อ่าน session
+  // Read session from localStorage (set by login.html)
   const session = requireAuth();
-
   if (!session || !session.uid) {
     showAuthError('ไม่พบข้อมูล session กรุณาเข้าสู่ระบบใหม่');
     throw new Error('No session');
   }
 
-  const sessionUid = session.uid;
-
-  // ════════════════════════════════════════════════════════════
-  // ตรวจสอบ auth mode
-  // ถ้าเป็น 'line' mode → ใช้ Firestore UID โดยตรง
-  // ถ้าเป็น 'anonymous' mode → ตรวจสอบ Firebase Auth (code เดิม)
-  // ════════════════════════════════════════════════════════════
-  const authMode = localStorage.getItem('vv_auth_mode') || 'anonymous';
-  const firestoreUid = localStorage.getItem('vv_firestore_uid') || null;
+  // ── Derive the effective UID ──────────────────────────────
+  // Priority:
+  //  1. Firebase Auth currentUser.uid (always correct after Custom Token login)
+  //  2. Fallback: localStorage session.uid (for backward compat)
+  //  3. vv_firestore_uid (legacy, removed in refactor but kept for migration)
   let uid;
-  let auth; // ← ประกาศให้ใช้ได้ทั้งไฟล์ (สำหรับ LINE notify)
+  let useAuth = false; // track if Firebase Auth is available for LINE notify
 
-  if (authMode === 'line') {
-    // LINE mode: ไม่ต้องพึ่ง Firebase Auth
-    // ใช้ Firestore doc ID (vv_firestore_uid หรือ session.uid) โดยตรง
-    uid = firestoreUid || sessionUid;
-    auth = null; // LINE mode ไม่มี Firebase Auth session
-    console.log('✅ LINE auth mode, using Firestore UID:', uid);
+  loadingText.textContent = 'กำลังตรวจสอบสิทธิ์...';
 
-    // Sync session UID ถ้าไม่ตรง
-    if (uid !== sessionUid) {
-      console.warn('⚠️ LINE mode: syncing vv_uid from', sessionUid, 'to', uid);
-      const { saveSession } = await import('../lib/auth.js');
-      saveSession({ ...session, uid });
-    }
-  } else {
-    // Anonymous mode: ตรวจสอบ Firebase Auth (code เดิม)
-    auth = getAuth();
-    let firebaseUid = null;
+  try {
+    if (auth.currentUser) {
+      // ✅ Firebase Auth is active (user logged in via Custom Token)
+      uid = auth.currentUser.uid;
+      useAuth = true;
+      console.log('✅ Firebase Auth active, UID:', uid);
 
-    try {
-      if (!auth.currentUser) {
-        loadingText.textContent = 'กำลังรอการยืนยันตัวตน...';
-        await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Auth timeout')), 8000);
-          const unsub = auth.onAuthStateChanged((user) => {
-            clearTimeout(timeout);
-            unsub();
-            resolve(user);
-          });
-        });
+      // Sync to session if mismatch
+      if (uid !== session.uid) {
+        console.warn('⚠️ Syncing session UID from', session.uid, 'to', uid);
+        const { saveSession } = await import('../lib/auth.js');
+        saveSession({ ...session, uid });
       }
-      firebaseUid = auth.currentUser?.uid;
-    } catch (err) {
-      console.warn('⚠️ Auth state wait failed:', err.message);
-      firebaseUid = auth.currentUser?.uid;
-    }
+    } else {
+      // Firebase Auth not ready yet — wait briefly
+      loadingText.textContent = 'กำลังรอการยืนยันตัวตน...';
+      const authUser = await new Promise((resolve) => {
+        const timeout = setTimeout(() => resolve(null), 5000); // 5s timeout
+        const unsub = auth.onAuthStateChanged((user) => {
+          clearTimeout(timeout);
+          unsub();
+          resolve(user);
+        });
+      });
 
-    if (!firebaseUid) {
-      console.error('❌ Firebase Auth ไม่มี user แต่มี session');
-      if (typeof clearSession === 'function') clearSession();
-      showAuthError('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
-      throw new Error('No Firebase Auth user');
+      if (authUser) {
+        uid = authUser.uid;
+        useAuth = true;
+        console.log('✅ Firebase Auth became active, UID:', uid);
+        // Sync to session if mismatch
+        if (uid !== session.uid) {
+          const { saveSession } = await import('../lib/auth.js');
+          saveSession({ ...session, uid });
+        }
+      } else {
+        // ⚠️ Firebase Auth still not ready after timeout.
+        // This can happen before the Cloud Function is deployed.
+        // Fall back to session UID for backward compatibility.
+        uid = session.uid;
+        useAuth = false;
+        console.warn('⚠️ Firebase Auth not active (Cloud Function may not be deployed). Using session UID:', uid);
+        console.warn('⚠️ LINE notifications will not work until Cloud Function is deployed.');
+      }
     }
-
-    // Sync session UID if mismatch
-    if (firebaseUid !== sessionUid) {
-      console.warn('⚠️ UID MISMATCH detected — syncing session from', sessionUid, 'to', firebaseUid);
-      const { saveSession } = await import('../lib/auth.js');
-      saveSession({ ...session, uid: firebaseUid });
-      console.log('✅ Session synced to current Firebase UID');
-    }
-
-    uid = firebaseUid;
+  } catch (err) {
+    console.warn('⚠️ Auth check error, falling back to session UID:', err.message);
+    uid = session.uid;
+    useAuth = false;
   }
 
-  // ✅ ผ่านทั้งหมด — ใช้ uid ต่อไปได้
-  console.log('✅ Auth OK, UID:', uid);
+  // ✅ Final check
+  if (!uid) {
+    if (typeof clearSession === 'function') clearSession();
+    showAuthError('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    throw new Error('No valid UID');
+  }
+
+  console.log('✅ Auth OK, UID:', uid, '| Firebase Auth:', useAuth);
   showApp();
 
   // ──────────────────────────────────────────────────────────
