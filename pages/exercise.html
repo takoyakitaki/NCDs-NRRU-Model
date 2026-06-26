@@ -283,6 +283,12 @@
   let useAuth = false;
 
   loadingText.textContent = 'กำลังตรวจสอบสิทธิ์...';
+
+  // ── Resolve effective UID ──────────────────────────────
+  // Priority:
+  //  1. Firebase Auth currentUser.uid (always correct after Custom Token login)
+  //  2. Fallback: localStorage session.uid (with validation against users collection)
+
   try {
     if (auth.currentUser) {
       uid = auth.currentUser.uid;
@@ -290,7 +296,7 @@
     } else {
       loadingText.textContent = 'กำลังรอการยืนยันตัวตน...';
       const authUser = await new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(null), 5000);
+        const timeout = setTimeout(() => resolve(null), 6000);
         const unsub = auth.onAuthStateChanged((user) => {
           clearTimeout(timeout);
           unsub();
@@ -318,6 +324,47 @@
     if (typeof clearSession === 'function') clearSession();
     showAuthError('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
     throw new Error('No valid UID');
+  }
+
+  // ── Validate resolved UID against users collection ────
+  // Ensures data is saved/loaded under the correct UID
+  // even if localStorage cached a stale UID from another device.
+  loadingText.textContent = 'กำลังตรวจสอบข้อมูลผู้ใช้...';
+  try {
+    const userSnap = await getDoc(doc(db, 'users', uid));
+    if (!userSnap.exists()) {
+      console.warn('⚠️ Resolved UID has no user document in Firestore:', uid);
+      
+      // If Firebase Auth has a different UID, prefer that
+      if (auth.currentUser && auth.currentUser.uid !== uid) {
+        const firebaseUid = auth.currentUser.uid;
+        const fbUserSnap = await getDoc(doc(db, 'users', firebaseUid));
+        if (fbUserSnap.exists()) {
+          console.log('✅ Using Firebase Auth UID instead:', firebaseUid);
+          uid = firebaseUid;
+          useAuth = true;
+          // Sync session
+          const { saveSession } = await import('../lib/auth.js');
+          saveSession({ ...session, uid });
+        } else {
+          // Neither UID has a user doc — redirect to login
+          console.error('❌ No user document found for any UID');
+          if (typeof clearSession === 'function') clearSession();
+          showAuthError('ไม่พบข้อมูลผู้ใช้ในระบบ กรุณาเข้าสู่ระบบใหม่');
+          throw new Error('No user document');
+        }
+      } else {
+        // Only one UID and it doesn't exist — redirect to login
+        console.error('❌ Resolved UID has no user document:', uid);
+        if (typeof clearSession === 'function') clearSession();
+        showAuthError('ไม่พบข้อมูลผู้ใช้ในระบบ กรุณาเข้าสู่ระบบใหม่');
+        throw new Error('No user document');
+      }
+    }
+  } catch (err) {
+    if (err.message === 'No user document') throw err;
+    // Firestore read error — continue with resolved UID
+    console.warn('⚠️ User document validation error (continuing):', err.message);
   }
 
   showApp();
