@@ -178,29 +178,27 @@
     const { collection, doc, getDoc, getDocs, query, setDoc, where, runTransaction, addDoc } =
       await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
-    // ✅ ดึง Endpoint URL จาก LIFF config
-    let APP_BASE_URL = '';
-    try {
-      const liffId = LIFF_IDS.login;
-      const resp = await fetch(`https://api.line.me/liff/v1/apps/${liffId}`, {
-        headers: { 'Authorization': 'Bearer ' + liffId }
-      }).catch(() => null);
-      APP_BASE_URL = window.location.origin + '/login.html';
-    } catch (e) {
-      APP_BASE_URL = window.location.origin + '/login.html';
-    }
+    /* ═══════════════════════════════════════════════════
+       แก้ไข #1: คำนวณ APP_BASE_URL โดยตรง
+       เดิม: fetch LINE API ด้วย liffId เป็น Bearer token
+             → ส่งผลลัพธ์เป็น 401 เสมอ (liffId ≠ access token)
+             → ตกลงไป catch แล้วกำหนดค่าเดิมอยู่ดี = โค้ดเสียเปล่า
+       ═══════════════════════════════════════════════════ */
+    const APP_BASE_URL = window.location.origin + window.location.pathname;
     console.log('🔗 APP_BASE_URL:', APP_BASE_URL);
 
-    // ✅ อ่าน redirect จาก URL params หรือ sessionStorage
+    /* ═══════════════════════════════════════════════════
+       แก้ไข #2: อ่าน redirect จาก sessionStorage ก่อน
+       เพื่อให้ทำงานถูกต้องหลัง liff.login redirect กลับมา
+       (URL หลัง redirect จะมี ?code=...&state=... แทน ?redirect=...)
+       ═══════════════════════════════════════════════════ */
     const urlParams = new URLSearchParams(window.location.search);
-    const requestedRedirect = urlParams.get('redirect')
-      || sessionStorage.getItem('vv_redirect')
+    const requestedRedirect = sessionStorage.getItem('vv_redirect')
+      || urlParams.get('redirect')
       || '/pages/food.html';
     sessionStorage.removeItem('vv_redirect');
     const redirect = (requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//'))
       ? requestedRedirect : '/pages/food.html';
-
-
 
     let lineProfile = null;
     let firebaseAuth = null;
@@ -282,6 +280,9 @@
         initialWeight: userData.initialWeight || null,
         initialHeight: userData.initialHeight || null,
       });
+      /* เก็บ Firestore doc ID แยกต่างหาก เพื่อให้ food.html
+         สามารถอ้างอิง doc ที่ถูกต้องโดยไม่พึ่ง Firebase Auth UID */
+      localStorage.setItem('vv_firestore_uid', firebaseUid);
     }
 
     async function findUserByLineId(lineUserId) {
@@ -327,23 +328,26 @@
           return;
         }
 
-        const { getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
-        if (!firebaseAuth) firebaseAuth = getAuth();
+        /* ═══════════════════════════════════════════════════
+           แก้ไข #3 (หลัก): Returning user — ไม่ต้อง signInAnonymously
+           ───────────────────────────────────────────────────
+           เดิม: signInAnonymously → ได้ UID ใหม่ทุกครั้ง
+                 → food.html ตรวจพบ vv_uid ≠ auth.uid
+                 → บังคับ sync vv_uid = auth.uid (ใหม่)
+                 → อ้างอิง Firestore doc ผิด → ข้อมูลหาย
 
-        // ✅ For returning users: just sign in with anonymous auth (simple & no Cloud Functions needed)
-        if (!firebaseAuth.currentUser) {
-          try {
-            const cred = await signInAnonymously(firebaseAuth);
-            console.log('✅ Anonymous auth OK for returning user, new UID:', cred.user.uid);
-          } catch (authErr) {
-            console.error('❌ Anonymous auth failed for returning user:', authErr.message);
-            throw new Error('ไม่สามารถยืนยันตัวตนได้ กรุณาลองใหม่อีกครั้ง');
-          }
-        }
+           แก้: ข้าม signInAnonymously ไปเลย
+                 → ใช้ Firestore doc ID เป็น source of truth
+                 → ตั้ง vv_auth_mode='line' ให้ food.html รู้ว่า
+                   อย่า sync UID กับ Firebase Auth
+           ═══════════════════════════════════════════════════ */
 
-        // Save the session with the user's original Firestore UID
-        // App will handle UID sync in the food.html auth check
         saveLineSession(user.id, user.data, profile);
+
+        // บอก food.html ว่า session นี้มาจาก LINE login
+        // อย่าแทนที่ vv_uid ด้วย Firebase Auth UID
+        localStorage.setItem('vv_auth_mode', 'line');
+
         window.location.href = redirect;
       } catch (err) {
         showMsg('ตรวจสอบข้อมูลไม่สำเร็จ: ' + err.message);
@@ -359,25 +363,25 @@
       try {
         if (!window.liff) throw new Error('LINE LIFF SDK ไม่สามารถโหลดได้');
         setStatus('กำลังเชื่อมต่อ LINE...');
-        
+
         const initPromise = ensureLiffInit();
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('LINE เชื่อมต่อช้า — กรุณาลองใหม่')), 8000)
         );
         await Promise.race([initPromise, timeoutPromise]);
-        
+
         if (!liff.isLoggedIn()) {
           if (liff.isInClient()) {
-            // ✅ ใช้ APP_BASE_URL ที่สร้างเอง
-            // เก็บ redirect param ใน sessionStorage ก่อน
-            const urlRedirect = new URLSearchParams(window.location.search).get('redirect');
+            /* แก้ไข #2 (ต่อ): เก็บ redirect param ใน sessionStorage
+               ก่อนเรียก liff.login เพราะหลัง redirect กลับ
+               URL จะเปลี่ยนเป็น ?code=...&state=... */
+            const urlRedirect = urlParams.get('redirect');
             if (urlRedirect) {
               sessionStorage.setItem('vv_redirect', urlRedirect);
             }
             console.log('📱 LINE login, redirectUri:', APP_BASE_URL);
             liff.login({ redirectUri: APP_BASE_URL });
           } else {
-            // ✅ External browser: ส่ง redirectUri ปกติได้
             document.getElementById('statusView').classList.add('hidden');
             document.getElementById('btnLineLogin').classList.remove('hidden');
             setStatus('กรุณากดปุ่มด้านล่าง');
@@ -399,15 +403,21 @@
 
     document.getElementById('btnLineLogin').addEventListener('click', async () => {
       const btn = document.getElementById('btnLineLogin');
-      btn.disabled = true; 
+      btn.disabled = true;
       btn.textContent = 'กำลังเชื่อมต่อ...';
       try {
         await ensureLiffInit();
-        // ✅ External browser: window.location.href ถูกต้อง
-        liff.login({ redirectUri: window.location.href });
+        /* แก้ไข #4: External browser — เก็บ redirect ไว้ใน
+           sessionStorage แล้วใช้ APP_BASE_URL (ไม่มี query params)
+           เป็น redirectUri เพื่อป้องกัน URL ยาวเกิน/พารามิเตอร์ซ้ำ */
+        const urlRedirect = urlParams.get('redirect');
+        if (urlRedirect) {
+          sessionStorage.setItem('vv_redirect', urlRedirect);
+        }
+        liff.login({ redirectUri: APP_BASE_URL });
       } catch (err) {
         showMsg(err.message);
-        btn.disabled = false; 
+        btn.disabled = false;
         btn.textContent = 'เข้าสู่ระบบด้วย LINE';
       }
     });
@@ -428,7 +438,7 @@
       if (!displayName) return showMsg('กรุณาระบุชื่อ-นามสกุล');
       if (!/^0[0-9]{9}$/.test(phone)) return showMsg('เบอร์โทรไม่ถูกต้อง (ต้องเป็น 0 ตามด้วยตัวเลข 9 ตัว ไม่มีช่องว่างหรือขีด)');
       if (!birthDate) return showMsg('กรุณาเลือกวันเดือนปีเกิด');
-      
+
       const todayStr = new Date().toISOString().slice(0, 10);
       if (birthDate > todayStr) return showMsg('วันเดือนปีเกิดต้องไม่เกินวันนี้');
       if (!initialWeight || initialWeight < 20) return showMsg('กรุณาระบุน้ำหนักที่ถูกต้อง');
@@ -445,6 +455,7 @@
         const existing = await findUserByLineId(lineUserId);
         if (existing) {
           saveLineSession(existing.id, existing.data, lineProfile);
+          localStorage.setItem('vv_auth_mode', 'line');
           window.location.href = redirect;
           return;
         }
@@ -456,6 +467,9 @@
 
         let firebaseUid;
         try {
+          /* สำหรับการลงทะเบียนครั้งแรก: anonymous auth ใช้ได้
+             เพราะ UID ที่ได้จะถูกใช้เป็น Firestore doc ID ทันที
+             ไม่มีปัญหา mismatch ใน session นี้ */
           if (firebaseAuth.currentUser) {
             firebaseUid = firebaseAuth.currentUser.uid;
             console.log('ℹ️ ใช้ anonymous user เดิม, UID:', firebaseUid);
@@ -522,6 +536,12 @@
         }
 
         saveLineSession(firebaseUid, userData, lineProfile);
+
+        /* สำหรับ user ใหม่: ตั้งค่าเป็น 'anonymous' เพราะใน session
+           นี้ auth UID ตรงกับ Firestore doc ID อยู่แล้ว
+           แต่ครั้งหน้าที่ login ใหม่ จะเปลี่ยนเป็น 'line' */
+        localStorage.setItem('vv_auth_mode', 'anonymous');
+
         window.location.href = redirect;
 
       } catch (err) {
@@ -544,5 +564,3 @@
   </script>
 </body>
 </html>
-
- 

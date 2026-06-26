@@ -46,6 +46,56 @@
     
     @keyframes spin{to{transform:rotate(360deg)}} 
     .spinner{animation:spin .8s linear infinite}
+
+    /* ── Responsive Nav ── */
+    :root { --sidebar-w: 220px; }
+    /* Desktop sidebar */
+    #desktopNav {
+      display: none;
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      flex-direction: column;
+      padding: 1.5rem 0.75rem;
+      z-index: 50;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+    }
+    #desktopNav .nav-brand {
+      font-size: 1.1rem; font-weight: 900; color: #14b8a6;
+      padding: 0 0.75rem 1.25rem; border-bottom: 1px solid #f3f4f6;
+      margin-bottom: 0.75rem;
+    }
+    #desktopNav a {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0.75rem; border-radius: 0.875rem;
+      text-decoration: none; font-size: 0.875rem; font-weight: 700;
+      color: #6b7280; transition: background 0.15s, color 0.15s;
+      margin-bottom: 0.25rem;
+    }
+    #desktopNav a:hover { background: #f0fdf4; color: #14b8a6; }
+    #desktopNav a.active { background: #f0fdf4; color: #14b8a6; }
+    #desktopNav a .nav-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+    @media (min-width: 1024px) {
+      #desktopNav { display: flex; }
+      #mobileNav { display: none !important; }
+      #app {
+        margin-left: var(--sidebar-w) !important;
+        width: calc(100% - var(--sidebar-w)) !important;
+        max-width: none !important;
+      }
+      /* Widen content area on large screens */
+      #scrollArea { padding-bottom: 1.5rem !important; }
+    }
+
+    /* Tablet (iPad): bottom nav stays, but widen layout */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      #app { max-width: 100% !important; }
+      body { overflow: auto !important; height: auto !important; }
+      #app { height: auto !important; min-height: 100dvh; }
+      #scrollArea { padding-bottom: 5rem !important; }
+    }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
@@ -118,9 +168,18 @@
   </div>
 </div>
 
-<!-- Bottom Navbar (only on mobile) -->
+<!-- Desktop Sidebar Nav -->
+<nav id="desktopNav">
+  <div class="nav-brand">💚 VitalVibe</div>
+  <a href="food.html" class="active"><span class="nav-icon">🍱</span>บันทึกอาหาร</a>
+  <a href="reminders.html"><span class="nav-icon">⏰</span>แจ้งเตือน</a>
+  <a href="missions.html"><span class="nav-icon">🏆</span>ภารกิจ</a>
+  <a href="profile.html"><span class="nav-icon">👤</span>โปรไฟล์</a>
+</nav>
+
+<!-- Bottom Navbar (mobile + tablet) -->
 <nav id="mobileNav" class="fixed bottom-0 left-0 right-0 z-50
-     w-screen sm:hidden
+     lg:hidden
      bg-white/95 backdrop-blur border-t border-gray-100
      flex items-center justify-around pb-safe shadow-2xl">
   <a href="food.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-teal-500 hover:bg-teal-50 transition"><span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
@@ -270,47 +329,71 @@
 
   const sessionUid = session.uid;
 
-  // รอ Firebase Auth พร้อมใช้งาน
-  const auth = getAuth();
-  let firebaseUid = null;
+  // ════════════════════════════════════════════════════════════
+  // ตรวจสอบ auth mode
+  // ถ้าเป็น 'line' mode → ใช้ Firestore UID โดยตรง
+  // ถ้าเป็น 'anonymous' mode → ตรวจสอบ Firebase Auth (code เดิม)
+  // ════════════════════════════════════════════════════════════
+  const authMode = localStorage.getItem('vv_auth_mode') || 'anonymous';
+  const firestoreUid = localStorage.getItem('vv_firestore_uid') || null;
+  let uid;
+  let auth; // ← ประกาศให้ใช้ได้ทั้งไฟล์ (สำหรับ LINE notify)
 
-  try {
-    // ถ้า auth ยังไม่พร้อม รอสักครู่
-    if (!auth.currentUser) {
-      loadingText.textContent = 'กำลังรอการยืนยันตัวตน...';
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Auth timeout')), 8000);
-        const unsub = auth.onAuthStateChanged((user) => {
-          clearTimeout(timeout);
-          unsub();
-          resolve(user);
-        });
-      });
+  if (authMode === 'line') {
+    // LINE mode: ไม่ต้องพึ่ง Firebase Auth
+    // ใช้ Firestore doc ID (vv_firestore_uid หรือ session.uid) โดยตรง
+    uid = firestoreUid || sessionUid;
+    auth = null; // LINE mode ไม่มี Firebase Auth session
+    console.log('✅ LINE auth mode, using Firestore UID:', uid);
+
+    // Sync session UID ถ้าไม่ตรง
+    if (uid !== sessionUid) {
+      console.warn('⚠️ LINE mode: syncing vv_uid from', sessionUid, 'to', uid);
+      const { saveSession } = await import('../lib/auth.js');
+      saveSession({ ...session, uid });
     }
-    firebaseUid = auth.currentUser?.uid;
-  } catch (err) {
-    console.warn('⚠️ Auth state wait failed:', err.message);
-    firebaseUid = auth.currentUser?.uid;
-  }
+  } else {
+    // Anonymous mode: ตรวจสอบ Firebase Auth (code เดิม)
+    auth = getAuth();
+    let firebaseUid = null;
 
-  // ── 🔑 ตรวจ UID match ──
-  if (!firebaseUid) {
-    console.error('❌ Firebase Auth ไม่มี user แต่มี session');
-    if (typeof clearSession === 'function') clearSession();
-    showAuthError('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
-    throw new Error('No Firebase Auth user');
-  }
+    try {
+      if (!auth.currentUser) {
+        loadingText.textContent = 'กำลังรอการยืนยันตัวตน...';
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Auth timeout')), 8000);
+          const unsub = auth.onAuthStateChanged((user) => {
+            clearTimeout(timeout);
+            unsub();
+            resolve(user);
+          });
+        });
+      }
+      firebaseUid = auth.currentUser?.uid;
+    } catch (err) {
+      console.warn('⚠️ Auth state wait failed:', err.message);
+      firebaseUid = auth.currentUser?.uid;
+    }
 
-  // ✅ Sync session UID if mismatch (ทำให้เข้าใจกรณี re-authentication)
-  if (firebaseUid !== sessionUid) {
-    console.warn('⚠️ UID MISMATCH detected — syncing session from', sessionUid, 'to', firebaseUid);
-    const { saveSession } = await import('../lib/auth.js');
-    saveSession({ ...session, uid: firebaseUid });
-    console.log('✅ Session synced to current Firebase UID');
+    if (!firebaseUid) {
+      console.error('❌ Firebase Auth ไม่มี user แต่มี session');
+      if (typeof clearSession === 'function') clearSession();
+      showAuthError('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      throw new Error('No Firebase Auth user');
+    }
+
+    // Sync session UID if mismatch
+    if (firebaseUid !== sessionUid) {
+      console.warn('⚠️ UID MISMATCH detected — syncing session from', sessionUid, 'to', firebaseUid);
+      const { saveSession } = await import('../lib/auth.js');
+      saveSession({ ...session, uid: firebaseUid });
+      console.log('✅ Session synced to current Firebase UID');
+    }
+
+    uid = firebaseUid;
   }
 
   // ✅ ผ่านทั้งหมด — ใช้ uid ต่อไปได้
-  const uid = firebaseUid;
   console.log('✅ Auth OK, UID:', uid);
   showApp();
 
