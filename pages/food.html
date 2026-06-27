@@ -81,17 +81,15 @@
         <div id="userAvatar" class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-xl cursor-pointer flex-shrink-0"></div>
       </div>
       <div class="mt-4 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-2xl p-4 text-white relative">
-        <div class="absolute top-3 right-3 flex gap-1">
-          <button onclick="editCalorieGoal()" class="bg-white/20 hover:bg-white/30 rounded-full px-2 py-1 text-[10px] font-black">Goal</button>
-          <button onclick="openCalorieHistory()" class="bg-white/20 hover:bg-white/30 rounded-full px-2 py-1 text-[10px] font-black">History</button>
-        </div>
         <div class="flex justify-between items-end mb-2">
           <div>
             <p class="text-xs font-bold opacity-75 uppercase tracking-wider">แคลอรี่วันนี้</p>
             <p class="text-3xl font-black" id="todayCalories">0</p>
           </div>
           <div class="text-right">
+            <p class="text-[10px] font-bold opacity-70 uppercase">เป้าหมาย</p>
             <p class="text-lg font-bold" id="calorieGoal">2,000 kcal</p>
+            <button onclick="editCalorieGoal()" class="mt-1 rounded-full bg-white/20 px-3 py-1 text-[11px] font-black hover:bg-white/30 active:scale-95 transition">แก้เป้าหมาย</button>
           </div>
         </div>
         <div class="w-full bg-white/30 rounded-full h-2">
@@ -102,7 +100,7 @@
     </div>
     <div class="flex-1 overflow-y-auto hide-scrollbar px-5 pt-5 pb-20 sm:pb-6" id="scrollArea">
       <button onclick="openCamera()"
-        class="w-full flex items-center gap-4 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-3xl p-5 text-white shadow-lg active:scale-[0.98] transition mb-6 hover:shadow-xl">
+        class="w-full flex items-center gap-4 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-3xl p-5 text-white shadow-lg active:scale-[0.98] transition mb-4 hover:shadow-xl">
         <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center text-4xl flex-shrink-0">📷</div>
         <div class="text-left flex-1 min-w-0">
           <span class="font-black text-lg block truncate">ถ่ายรูปอาหาร</span>
@@ -110,6 +108,27 @@
         </div>
         <span class="text-2xl opacity-50 flex-shrink-0">›</span>
       </button>
+
+      <section id="calorieHistoryPanel" class="mb-6 rounded-3xl border border-teal-100 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p class="text-xs font-black text-teal-500 uppercase tracking-wider">History</p>
+            <h2 class="text-base font-black text-gray-800">สรุปแคลอรี่ย้อนหลัง</h2>
+          </div>
+          <div class="grid grid-cols-2 rounded-2xl bg-gray-100 p-1 text-xs font-black text-gray-500">
+            <button id="historyWeekBtn" onclick="setHistoryMode('week')" class="rounded-xl px-3 py-2 bg-white text-teal-600 shadow-sm">สัปดาห์</button>
+            <button id="historyMonthBtn" onclick="setHistoryMode('month')" class="rounded-xl px-3 py-2">เดือน</button>
+          </div>
+        </div>
+        <div id="historySummaryCards" class="grid grid-cols-3 gap-2 mb-3"></div>
+        <div id="historyTable" class="overflow-hidden rounded-2xl border border-gray-100"></div>
+        <div id="historyDetail" class="mt-3"></div>
+      </section>
+
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-base font-black text-gray-800">รายการบันทึกอาหาร</h2>
+        <span class="text-xs font-bold text-gray-400">วันนี้</span>
+      </div>
       <div id="mealSections" class="space-y-4"></div>
     </div>
   </div>
@@ -119,7 +138,6 @@
   <div class="nav-brand">💚 VitalVibe</div>
   <a href="food.html" class="active"><span class="nav-icon">🍱</span>บันทึกอาหาร</a>
   <a href="exercise.html"><span class="nav-icon">🏃</span>ออกกำลังกาย</a>
-  <a href="health.html"><span class="nav-icon">📋</span>สุขภาพ</a>
   <a href="reminders.html"><span class="nav-icon">⏰</span>แจ้งเตือน</a>
   <a href="missions.html"><span class="nav-icon">🏆</span>ภารกิจ</a>
   <a href="profile.html"><span class="nav-icon">👤</span>โปรไฟล์</a>
@@ -128,7 +146,6 @@
 <nav id="mobileNav" class="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/95 backdrop-blur border-t border-gray-100 flex items-center justify-around pb-safe shadow-2xl">
   <a href="food.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-teal-500 hover:bg-teal-50 transition"><span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
   <a href="exercise.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏃</span><span class="text-[10px] font-bold">ออกกำลัง</span></a>
-  <a href="health.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">📋</span><span class="text-[10px] font-bold">สุขภาพ</span></a>
   <a href="reminders.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">⏰</span><span class="text-[10px] font-bold">เตือน</span></a>
   <a href="missions.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏆</span><span class="text-[10px] font-bold">ภารกิจ</span></a>
   <a href="profile.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">👤</span><span class="text-[10px] font-bold">โปรไฟล์</span></a>
@@ -204,24 +221,6 @@
       <button id="analyzeBtn" onclick="analyzeFood()" disabled
         class="flex-1 bg-gradient-to-r from-teal-400 to-emerald-500 text-white font-black py-3 rounded-2xl text-sm disabled:opacity-40 transition active:scale-95">🔍 วิเคราะห์</button>
       <button id="saveBtn" onclick="saveFoodEntry()" class="hidden flex-1 bg-gradient-to-r from-emerald-400 to-green-500 text-white font-black py-3 rounded-2xl text-sm active:scale-95">💾 บันทึก</button>
-    </div>
-  </div>
-</div>
-
-<div id="calorieHistoryModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-  <div class="w-full max-w-sm max-h-[88vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
-    <div class="bg-gradient-to-r from-teal-500 to-emerald-500 p-4 flex items-center gap-3 flex-shrink-0">
-      <button onclick="closeCalorieHistory()" class="text-white/70 hover:text-white text-xl">✕</button>
-      <h2 class="text-white font-black text-lg flex-1 text-center">ประวัติแคลอรี่</h2>
-    </div>
-    <div class="p-4 flex-1 overflow-y-auto hide-scrollbar">
-      <div class="flex items-center gap-2 mb-3">
-        <input id="historyDatePicker" type="date" onchange="renderHistoryDay(this.value)"
-          class="flex-1 border border-gray-200 rounded-2xl px-3 py-2 text-sm font-bold">
-        <button onclick="loadCalorieHistory()" class="bg-teal-50 text-teal-600 rounded-2xl px-3 py-2 text-xs font-black">Reload</button>
-      </div>
-      <div id="calorieHistoryDays" class="space-y-2 mb-4"></div>
-      <div id="calorieHistoryEntries" class="space-y-2"></div>
     </div>
   </div>
 </div>
@@ -320,6 +319,8 @@
   let lineUserId = session.lineUid || null;
   let latestTodayEntries = [];
   let historyEntries = [];
+  let historyMode = 'week';
+  let selectedHistoryDate = null;
   let calorieNotifiedToday = false;
 
   function formatLocalDate(date) {
@@ -330,6 +331,7 @@
   }
 
   const today = formatLocalDate(new Date());
+  selectedHistoryDate = today;
 
   // 👤 User profile listener
   onSnapshot(doc(db, 'users', uid), snap => {
@@ -356,6 +358,7 @@
     latestTodayEntries = entries;
     renderMeals(entries);
     updateSummary(entries);
+    loadCalorieHistory();
   }, err => {
     console.error('❌ Food log listener failed:', err);
     let hint = '';
@@ -611,6 +614,7 @@
         createdAt: new Date().toISOString()
       });
       closeCameraModal();
+      await loadCalorieHistory();
     } catch (err) { alert('บันทึกอาหารไม่สำเร็จ: ' + err.message); }
   };
 
@@ -621,57 +625,180 @@
     try { await updateDoc(doc(db, 'users', uid), { calorieGoal: value }); } catch (err) { alert('บันทึกเป้าหมายไม่สำเร็จ: ' + err.message); }
   };
 
-  window.openCalorieHistory = async () => {
-    document.getElementById('calorieHistoryModal').classList.remove('hidden');
-    document.getElementById('historyDatePicker').value = today;
-    await loadCalorieHistory();
+  function parseEntryDate(entry) {
+    return entry.date || (entry.createdAt ? formatLocalDate(new Date(entry.createdAt)) : today);
+  }
+
+  function addDays(date, amount) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + amount);
+    return next;
+  }
+
+  function startOfWeek(date) {
+    const start = new Date(date);
+    const day = start.getDay() || 7;
+    start.setDate(start.getDate() - day + 1);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+
+  function dateLabel(dateString, compact = false) {
+    const d = new Date(dateString + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return dateString;
+    return d.toLocaleDateString('th-TH', compact
+      ? { day: 'numeric', month: 'short' }
+      : { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  function buildHistoryRange() {
+    const now = new Date();
+    if (historyMode === 'month') {
+      const days = [];
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      for (let d = new Date(start); d <= end; d = addDays(d, 1)) days.push(formatLocalDate(d));
+      return days;
+    }
+    const start = startOfWeek(now);
+    return Array.from({ length: 7 }, (_, i) => formatLocalDate(addDays(start, i)));
+  }
+
+  function summarizeHistory(entries, range) {
+    const byDate = new Map(range.map(date => [date, { date, calories: 0, count: 0, protein: 0 }]));
+    entries.forEach(entry => {
+      const date = parseEntryDate(entry);
+      if (!byDate.has(date)) return;
+      const cur = byDate.get(date);
+      cur.calories += Number(entry.calories) || 0;
+      cur.count += 1;
+      cur.protein += Number(entry.protein) || 0;
+    });
+    return [...byDate.values()];
+  }
+
+  window.setHistoryMode = (mode) => {
+    historyMode = mode;
+    selectedHistoryDate = today;
+    document.getElementById('historyWeekBtn').className = mode === 'week'
+      ? 'rounded-xl px-3 py-2 bg-white text-teal-600 shadow-sm'
+      : 'rounded-xl px-3 py-2';
+    document.getElementById('historyMonthBtn').className = mode === 'month'
+      ? 'rounded-xl px-3 py-2 bg-white text-teal-600 shadow-sm'
+      : 'rounded-xl px-3 py-2';
+    renderCalorieHistory();
   };
 
-  window.closeCalorieHistory = () => { document.getElementById('calorieHistoryModal').classList.add('hidden'); };
-
   window.loadCalorieHistory = async () => {
-    const daysContainer = document.getElementById('calorieHistoryDays');
-    const entriesContainer = document.getElementById('calorieHistoryEntries');
+    const table = document.getElementById('historyTable');
+    if (!table) return;
     try {
-      daysContainer.innerHTML = '<p class="text-center text-gray-300 py-4 text-sm">กำลังโหลด...</p>';
-      entriesContainer.innerHTML = '';
+      table.innerHTML = '<div class="p-4 text-center text-sm font-bold text-gray-300">กำลังโหลด...</div>';
       const snap = await getDocs(query(collection(db, 'foodLogs'), where('uid', '==', uid)));
       historyEntries = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
-        const dateA = a.date || (a.createdAt ? formatLocalDate(new Date(a.createdAt)) : '');
-        const dateB = b.date || (b.createdAt ? formatLocalDate(new Date(b.createdAt)) : '');
+        const dateA = parseEntryDate(a);
+        const dateB = parseEntryDate(b);
         return dateB.localeCompare(dateA) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
       });
-      const byDate = new Map();
-      historyEntries.forEach(e => {
-        const date = e.date || (e.createdAt ? formatLocalDate(new Date(e.createdAt)) : today);
-        const cur = byDate.get(date) || { date, calories: 0, count: 0 };
-        cur.calories += Number(e.calories) || 0; cur.count += 1;
-        byDate.set(date, cur);
-      });
-      const days = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date));
-      daysContainer.innerHTML = days.length
-        ? days.map(day => `<button onclick="renderHistoryDay('${day.date}')" class="w-full border border-gray-100 rounded-2xl px-3 py-2 text-left flex items-center justify-between hover:bg-gray-50 transition"><span class="font-black text-gray-700 text-sm">${day.date}</span><span class="text-xs font-bold text-teal-600">${day.calories.toLocaleString()} kcal · ${day.count} รายการ</span></button>`).join('')
-        : '<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติแคลอรี่</p>';
-      renderHistoryDay(document.getElementById('historyDatePicker').value || today);
+      renderCalorieHistory();
     } catch (err) {
-      console.error('❌ Load history failed:', err);
-      daysContainer.innerHTML = '';
-      entriesContainer.innerHTML = `<div class="text-center py-6"><p class="text-red-400 font-bold text-sm">โหลดประวัติไม่สำเร็จ</p><p class="text-gray-300 text-xs mt-1">${err.message}</p></div>`;
+      console.error('Load history failed:', err);
+      table.innerHTML = `<div class="p-4 text-center"><p class="text-sm font-black text-red-400">โหลดประวัติไม่สำเร็จ</p><p class="mt-1 text-xs text-gray-300">${escapeHtml(err.message)}</p></div>`;
     }
   };
 
+  function renderCalorieHistory() {
+    const summaryEl = document.getElementById('historySummaryCards');
+    const tableEl = document.getElementById('historyTable');
+    if (!summaryEl || !tableEl) return;
+
+    const range = buildHistoryRange();
+    const rows = summarizeHistory(historyEntries, range);
+    const total = rows.reduce((sum, row) => sum + row.calories, 0);
+    const activeDays = rows.filter(row => row.count > 0).length;
+    const avg = activeDays ? Math.round(total / activeDays) : 0;
+    const best = rows.reduce((max, row) => Math.max(max, row.calories), 0);
+
+    summaryEl.innerHTML = [
+      ['รวม', total.toLocaleString(), 'kcal'],
+      ['เฉลี่ย', avg.toLocaleString(), 'kcal/วัน'],
+      ['สูงสุด', best.toLocaleString(), 'kcal']
+    ].map(([label, value, unit]) => `
+      <div class="rounded-2xl bg-teal-50 px-3 py-3 text-center">
+        <p class="text-[10px] font-black uppercase text-teal-500">${label}</p>
+        <p class="mt-1 text-lg font-black text-gray-800">${value}</p>
+        <p class="text-[10px] font-bold text-gray-400">${unit}</p>
+      </div>
+    `).join('');
+
+    const maxForBars = Math.max(calorieGoal, best, 1);
+    tableEl.innerHTML = `
+      <div class="grid grid-cols-[1.1fr_2fr_0.9fr] bg-gray-50 px-3 py-2 text-[10px] font-black uppercase text-gray-400">
+        <span>วัน</span><span>แคลอรี่</span><span class="text-right">รายการ</span>
+      </div>
+      <div class="divide-y divide-gray-100">
+        ${rows.map(row => {
+          const pct = Math.min(100, Math.round((row.calories / maxForBars) * 100));
+          const isSelected = row.date === selectedHistoryDate;
+          const isOver = row.calories > calorieGoal && calorieGoal > 0;
+          return `
+            <button onclick="renderHistoryDay('${row.date}')" class="w-full grid grid-cols-[1.1fr_2fr_0.9fr] items-center gap-2 px-3 py-3 text-left transition ${isSelected ? 'bg-teal-50' : 'bg-white hover:bg-gray-50'}">
+              <span class="text-xs font-black ${isSelected ? 'text-teal-700' : 'text-gray-600'}">${dateLabel(row.date, historyMode === 'month')}</span>
+              <span>
+                <span class="mb-1 flex items-center justify-between gap-2">
+                  <span class="text-xs font-black text-gray-800">${row.calories.toLocaleString()} kcal</span>
+                  ${isOver ? '<span class="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-black text-red-400">เกิน</span>' : ''}
+                </span>
+                <span class="block h-2 overflow-hidden rounded-full bg-gray-100">
+                  <span class="block h-full rounded-full ${isOver ? 'bg-red-400' : 'bg-teal-400'}" style="width:${pct}%"></span>
+                </span>
+              </span>
+              <span class="text-right text-xs font-black text-gray-400">${row.count}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    renderHistoryDay(selectedHistoryDate || today);
+  }
+
   window.renderHistoryDay = (date) => {
-    document.getElementById('historyDatePicker').value = date;
-    const entries = historyEntries.filter(e => { const ed = e.date || (e.createdAt ? formatLocalDate(new Date(e.createdAt)) : ''); return ed === date; });
-    const total = entries.reduce((sum, e) => sum + (Number(e.calories) || 0), 0);
-    const container = document.getElementById('calorieHistoryEntries');
-    container.innerHTML = entries.length
-      ? `<div class="font-black text-gray-700 text-sm mb-2">รวม ${total.toLocaleString()} kcal</div>` + entries.map(e => {
-        const encName = encodeURIComponent(e.name || '');
-        const encNote = encodeURIComponent(e.note || '');
-        return `<div class="bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm"><div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(e.name || 'ไม่ระบุชื่อ')}</p><p class="text-xs text-gray-400">${e.calories || 0} kcal · โปรตีน ${e.protein || 0}g · ${e.meal || '-'}</p></div><button onclick="editEntry('${e.id}','${encName}',${e.calories||0},${e.carbs||0},${e.protein||0},${e.fat||0},${e.fiber||0},${e.sodium||0},'${encNote}')" class="text-teal-500 text-xs font-black">แก้</button></div>`;
-      }).join('')
-      : '<p class="text-center text-gray-300 py-6 font-bold text-sm">วันนี้ยังไม่มีรายการอาหาร</p>';
+    selectedHistoryDate = date;
+    const container = document.getElementById('historyDetail');
+    if (!container) return;
+    const entries = historyEntries.filter(entry => parseEntryDate(entry) === date);
+    const total = entries.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0);
+    if (!entries.length) {
+      container.innerHTML = `
+        <div class="rounded-2xl bg-gray-50 px-4 py-4 text-center">
+          <p class="text-sm font-black text-gray-400">${dateLabel(date)} ยังไม่มีรายการ</p>
+          <p class="mt-1 text-xs font-bold text-gray-300">เพิ่มจากปุ่มถ่ายรูปอาหารด้านบนได้เลย</p>
+        </div>
+      `;
+      return;
+    }
+    container.innerHTML = `
+      <div class="mb-2 flex items-center justify-between">
+        <p class="text-sm font-black text-gray-700">${dateLabel(date)}</p>
+        <p class="rounded-full bg-teal-50 px-3 py-1 text-xs font-black text-teal-600">${total.toLocaleString()} kcal</p>
+      </div>
+      <div class="space-y-2">
+        ${entries.map(entry => {
+          const encName = encodeURIComponent(entry.name || '');
+          const encNote = encodeURIComponent(entry.note || '');
+          return `
+            <div class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3">
+              <div class="flex-1 min-w-0">
+                <p class="truncate text-sm font-black text-gray-800">${escapeHtml(entry.name || 'ไม่ระบุชื่อ')}</p>
+                <p class="text-xs font-bold text-gray-400">${entry.calories || 0} kcal • โปรตีน ${entry.protein || 0}g • ${escapeHtml(entry.meal || '-')}</p>
+              </div>
+              <button onclick="editEntry('${entry.id}','${encName}',${entry.calories||0},${entry.carbs||0},${entry.protein||0},${entry.fat||0},${entry.fiber||0},${entry.sodium||0},'${encNote}')" class="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-black text-teal-600">แก้</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   };
 </script>
 </body>
