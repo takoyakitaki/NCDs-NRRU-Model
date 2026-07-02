@@ -334,6 +334,18 @@
   // ──────────────────────────────────────────────────────────
   const EXERCISE_CATEGORIES = [
     {
+      category_id: 4,
+      category_name_th: 'กิจวัตร',
+      category_name_en: 'Daily Routine',
+      icon: '🏡',
+      sub_activities: [
+        { id: 401, name_th: 'งานบ้าน', name_en: 'Household chores', met: 2.5 },
+        { id: 402, name_th: 'ปลูกต้นไม้', name_en: 'Gardening / Planting', met: 3.0 },
+        { id: 403, name_th: 'ถอนหญ้า', name_en: 'Weeding', met: 3.5 },
+        { id: 404, name_th: 'ไทยเก๊ก ยืนสงบ/อยู่กับที่', name_en: 'Tai Chi movement (standing/low impact)', met: 2.8 }
+      ]
+    },
+    {
       category_id: 1,
       category_name_th: 'คาร์ดิโอและการวิ่ง',
       category_name_en: 'Cardio & Running',
@@ -381,7 +393,7 @@
   // ──────────────────────────────────────────────────────────
   // 📅 State
   // ──────────────────────────────────────────────────────────
-  let selectedCategoryId = 1;
+  let selectedCategoryId = 4;
   let selectedSubActivity = null; // { id, name_th, name_en, met }
   let todayEntries = [];
   let exerciseGoal = 300; // default kcal target
@@ -448,7 +460,7 @@
   function renderCategories() {
     const container = document.getElementById('categoryPills');
     container.innerHTML = EXERCISE_CATEGORIES.map(cat => `
-      <button onclick="selectCategory(${cat.category_id})"
+      <button onclick="selectCategory(${cat.category_id})" data-cat-id="${cat.category_id}"
         class="cat-btn flex-shrink-0 px-4 py-2 rounded-full text-xs font-black transition whitespace-nowrap
           ${cat.category_id === selectedCategoryId
             ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
@@ -466,8 +478,8 @@
 
     // Update pill styles
     document.querySelectorAll('.cat-btn').forEach(btn => {
-      const idx = Array.from(btn.parentElement.children).indexOf(btn) + 1;
-      const isActive = idx === catId;
+      const btnCatId = parseInt(btn.dataset.catId, 10);
+      const isActive = btnCatId === catId;
       btn.className = `cat-btn flex-shrink-0 px-4 py-2 rounded-full text-xs font-black transition whitespace-nowrap ${
         isActive
           ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
