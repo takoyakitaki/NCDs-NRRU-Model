@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>บันทึกอาหาร</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     * { font-family:'Prompt',sans-serif; -webkit-tap-highlight-color:transparent; }
@@ -121,7 +122,9 @@
           </div>
         </div>
         <div id="historySummaryCards" class="grid grid-cols-3 gap-2 mb-3"></div>
-        <div id="historyTable" class="overflow-hidden rounded-2xl border border-gray-100"></div>
+        <div id="historyChartWrapper" class="overflow-hidden rounded-2xl border border-gray-100 bg-white p-3 mb-3">
+          <canvas id="historySummaryChart" height="220"></canvas>
+        </div>
         <div id="historyDetail" class="mt-3"></div>
       </section>
 
@@ -321,6 +324,7 @@
   let historyEntries = [];
   let historyMode = 'week';
   let selectedHistoryDate = null;
+  let historySummaryChart = null;
   let calorieNotifiedToday = false;
 
   function formatLocalDate(date) {
@@ -709,8 +713,8 @@
 
   function renderCalorieHistory() {
     const summaryEl = document.getElementById('historySummaryCards');
-    const tableEl = document.getElementById('historyTable');
-    if (!summaryEl || !tableEl) return;
+    const chartWrapper = document.getElementById('historyChartWrapper');
+    if (!summaryEl || !chartWrapper) return;
 
     const range = buildHistoryRange();
     const rows = summarizeHistory(historyEntries, range);
@@ -731,36 +735,66 @@
       </div>
     `).join('');
 
-    const maxForBars = Math.max(calorieGoal, best, 1);
-    tableEl.innerHTML = `
-      <div class="grid grid-cols-[1.1fr_2fr_0.9fr] bg-gray-50 px-3 py-2 text-[10px] font-black uppercase text-gray-400">
-        <span>วัน</span><span>แคลอรี่</span><span class="text-right">รายการ</span>
-      </div>
-      <div class="divide-y divide-gray-100">
-        ${rows.map(row => {
-          const pct = Math.min(100, Math.round((row.calories / maxForBars) * 100));
-          const isSelected = row.date === selectedHistoryDate;
-          const isOver = row.calories > calorieGoal && calorieGoal > 0;
-          return `
-            <button onclick="renderHistoryDay('${row.date}')" class="w-full grid grid-cols-[1.1fr_2fr_0.9fr] items-center gap-2 px-3 py-3 text-left transition ${isSelected ? 'bg-teal-50' : 'bg-white hover:bg-gray-50'}">
-              <span class="text-xs font-black ${isSelected ? 'text-teal-700' : 'text-gray-600'}">${dateLabel(row.date, historyMode === 'month')}</span>
-              <span>
-                <span class="mb-1 flex items-center justify-between gap-2">
-                  <span class="text-xs font-black text-gray-800">${row.calories.toLocaleString()} kcal</span>
-                  ${isOver ? '<span class="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-black text-red-400">เกิน</span>' : ''}
-                </span>
-                <span class="block h-2 overflow-hidden rounded-full bg-gray-100">
-                  <span class="block h-full rounded-full ${isOver ? 'bg-red-400' : 'bg-teal-400'}" style="width:${pct}%"></span>
-                </span>
-              </span>
-              <span class="text-right text-xs font-black text-gray-400">${row.count}</span>
-            </button>
-          `;
-        }).join('')}
-      </div>
-    `;
-
+    renderHistoryChart(rows);
     renderHistoryDay(selectedHistoryDate || today);
+  }
+
+  function renderHistoryChart(rows) {
+    const chartEl = document.getElementById('historySummaryChart');
+    if (!chartEl) return;
+
+    const labels = rows.map(row => dateLabel(row.date, historyMode === 'month'));
+    const values = rows.map(row => row.calories);
+    const dates = rows.map(row => row.date);
+
+    const data = {
+      labels,
+      datasets: [{
+        label: historyMode === 'week' ? 'แคลอรี่ย้อนหลัง 7 วัน' : 'แคลอรี่เดือนนี้',
+        data: values,
+        backgroundColor: '#14b8a6',
+        borderRadius: 12,
+        borderSkipped: false,
+        maxBarThickness: 36
+      }]
+    };
+
+    const options = {
+      maintainAspectRatio: false,
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.parsed.y.toLocaleString()} kcal`
+          }
+        }
+      },
+      onClick: (event, elements) => {
+        if (!elements.length) return;
+        const index = elements[0].index;
+        if (dates[index]) window.renderHistoryDay(dates[index]);
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#475569', font: { size: 12 } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(226,232,240,0.7)' },
+          ticks: { color: '#475569', font: { size: 12 }, precision: 0 }
+        }
+      }
+    };
+
+    if (historySummaryChart) {
+      historySummaryChart.data = data;
+      historySummaryChart.options = options;
+      historySummaryChart.update();
+    } else {
+      historySummaryChart = new Chart(chartEl, { type: 'bar', data, options });
+    }
   }
 
   window.renderHistoryDay = (date) => {

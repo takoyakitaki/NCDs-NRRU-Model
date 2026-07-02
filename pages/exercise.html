@@ -228,6 +228,15 @@
           class="flex-1 border border-gray-200 rounded-2xl px-3 py-2 text-sm font-bold">
         <button onclick="loadExerciseHistory()" class="bg-orange-50 text-orange-600 rounded-2xl px-3 py-2 text-xs font-black">Reload</button>
       </div>
+      <div class="flex items-center gap-2 mb-4">
+        <button id="historyChartWeekBtn" onclick="setHistoryChartMode('week')"
+          class="flex-1 rounded-2xl px-3 py-2 text-xs font-black transition bg-orange-500 text-white">สัปดาห์</button>
+        <button id="historyChartMonthBtn" onclick="setHistoryChartMode('month')"
+          class="flex-1 rounded-2xl px-3 py-2 text-xs font-black transition bg-gray-100 text-gray-500 hover:bg-gray-200">เดือน</button>
+      </div>
+      <div class="mb-4 bg-white rounded-3xl shadow-sm p-3">
+        <canvas id="exerciseHistorySummaryChart" height="220"></canvas>
+      </div>
       <div id="exerciseHistoryDays" class="space-y-2 mb-4"></div>
       <div id="exerciseHistoryEntries" class="space-y-2"></div>
     </div>
@@ -399,6 +408,8 @@
   let exerciseGoal = 300; // default kcal target
   let userWeight = 70; // default weight (kg)
   let historyEntries = [];
+  let exerciseHistoryChart = null;
+  let historyChartMode = 'week';
 
   function formatLocalDate(date) {
     const y = date.getFullYear();
@@ -761,6 +772,7 @@
         : '<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติการออกกำลังกาย</p>';
 
       renderHistoryDay(document.getElementById('historyDatePicker').value || today);
+      renderExerciseHistoryChart(days);
 
     } catch (err) {
       console.error('❌ Load history failed:', err);
@@ -772,6 +784,123 @@
         </div>`;
     }
   };
+
+  window.setHistoryChartMode = (mode) => {
+    if (historyChartMode === mode) return;
+    historyChartMode = mode;
+    document.getElementById('historyChartWeekBtn').className = mode === 'week'
+      ? 'flex-1 rounded-2xl px-3 py-2 text-xs font-black transition bg-orange-500 text-white'
+      : 'flex-1 rounded-2xl px-3 py-2 text-xs font-black transition bg-gray-100 text-gray-500 hover:bg-gray-200';
+    document.getElementById('historyChartMonthBtn').className = mode === 'month'
+      ? 'flex-1 rounded-2xl px-3 py-2 text-xs font-black transition bg-orange-500 text-white'
+      : 'flex-1 rounded-2xl px-3 py-2 text-xs font-black transition bg-gray-100 text-gray-500 hover:bg-gray-200';
+    loadExerciseHistory();
+  };
+
+  function getThaiDayLabel(dateString) {
+    const date = new Date(dateString);
+    const dayNames = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+    return `${dayNames[date.getDay()]} ${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function getThaiMonthLabel(year, monthIndex) {
+    const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    return `${monthNames[monthIndex]} ${year}`;
+  }
+
+  function renderExerciseHistoryChart(days) {
+    const chartEl = document.getElementById('exerciseHistorySummaryChart');
+    if (!chartEl) return;
+
+    const sortedDays = [...days].sort((a, b) => a.date.localeCompare(b.date));
+    const latestDate = sortedDays.length ? new Date(sortedDays[sortedDays.length - 1].date) : new Date();
+
+    let labels = [];
+    let values = [];
+
+    if (historyChartMode === 'week') {
+      const weekData = new Map();
+      for (let i = 6; i >= 0; i -= 1) {
+        const date = new Date(latestDate);
+        date.setDate(latestDate.getDate() - i);
+        const key = date.toISOString().slice(0, 10);
+        weekData.set(key, 0);
+      }
+      sortedDays.forEach(d => {
+        if (weekData.has(d.date)) {
+          weekData.set(d.date, weekData.get(d.date) + Number(d.calories) || 0);
+        }
+      });
+      labels = [...weekData.keys()].map(getThaiDayLabel);
+      values = [...weekData.values()];
+    } else {
+      const monthData = new Map();
+      const months = [];
+      for (let i = 5; i >= 0; i -= 1) {
+        const date = new Date(latestDate.getFullYear(), latestDate.getMonth() - i, 1);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthData.set(key, 0);
+        months.push(date);
+      }
+      sortedDays.forEach(d => {
+        const [year, month] = d.date.split('-');
+        const key = `${year}-${month}`;
+        if (monthData.has(key)) {
+          monthData.set(key, monthData.get(key) + Number(d.calories) || 0);
+        }
+      });
+      labels = months.map(d => getThaiMonthLabel(d.getFullYear(), d.getMonth()));
+      values = [...monthData.values()];
+    }
+
+    const data = {
+      labels,
+      datasets: [{
+        label: historyChartMode === 'week' ? 'แคลอรี่ 7 วันล่าสุด' : 'แคลอรี่ย้อนหลัง 6 เดือน',
+        data: values,
+        backgroundColor: '#fb923c',
+        borderRadius: 12,
+        borderSkipped: false,
+        maxBarThickness: 36
+      }]
+    };
+
+    const options = {
+      maintainAspectRatio: false,
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.parsed.y.toLocaleString()} kcal`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#6b7280', font: { size: 12 } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(229,231,235,0.7)' },
+          ticks: { color: '#6b7280', font: { size: 12 }, precision: 0 }
+        }
+      }
+    };
+
+    if (exerciseHistoryChart) {
+      exerciseHistoryChart.data = data;
+      exerciseHistoryChart.options = options;
+      exerciseHistoryChart.update();
+    } else {
+      exerciseHistoryChart = new Chart(chartEl, {
+        type: 'bar',
+        data,
+        options
+      });
+    }
+  }
 
   window.renderHistoryDay = (date) => {
     document.getElementById('historyDatePicker').value = date;
