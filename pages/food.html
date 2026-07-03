@@ -376,27 +376,49 @@
 
   // 📊 Calorie summary
   function updateSummary(entries) {
-    const total = entries.reduce((s, e) => s + (e.calories || 0), 0);
-    document.getElementById('todayCalories').textContent = total.toLocaleString();
-    const pct = Math.min(100, (total / calorieGoal) * 100);
-    document.getElementById('calorieBar').style.width = pct + '%';
-    const bar = document.getElementById('calorieBar');
-    if (pct >= 100) bar.className = 'bg-red-400 rounded-full h-2 transition-all duration-500';
-    else if (pct >= 85) bar.className = 'bg-orange-300 rounded-full h-2 transition-all duration-500';
-    else if (pct >= 60) bar.className = 'bg-yellow-300 rounded-full h-2 transition-all duration-500';
-    else bar.className = 'bg-white rounded-full h-2 transition-all duration-500';
-    const alertEl = document.getElementById('calorieAlert');
-    if (total >= calorieGoal && calorieGoal > 0) {
-      alertEl.textContent = 'แคลอรี่วันนี้เต็มแล้ว';
-      alertEl.classList.remove('hidden');
-      if (!calorieNotifiedToday) {
-        calorieNotifiedToday = true;
-        notifyCalorieGoalReached(total);
+    const foodTotal = entries.reduce((s, e) => s + (e.calories || 0), 0);
+    
+    // ดึงแคลอรี่จากการออกกำลังกายเพื่อลบออก
+    getDocs(query(
+      collection(db, 'exerciseLogs'),
+      where('uid', '==', uid),
+      where('date', '==', today)
+    )).then(exSnap => {
+      const exerciseCalories = exSnap.docs.reduce((s, d) => s + (d.data().calories || 0), 0);
+      
+      // คำนวนแคลอรี่สุทธิ: ถ้าแคลอรี่อาหาร > 0 จะลบแคลอรี่จากการออกกำลังกาย
+      let netCalories = foodTotal;
+      if (foodTotal > 0 && exerciseCalories > 0) {
+        netCalories = Math.max(0, foodTotal - exerciseCalories);
       }
-    } else {
-      alertEl.classList.add('hidden');
-    }
-    saveDailyCalorieSummary(total);
+      
+      document.getElementById('todayCalories').textContent = netCalories.toLocaleString();
+      const pct = Math.min(100, (netCalories / calorieGoal) * 100);
+      document.getElementById('calorieBar').style.width = pct + '%';
+      const bar = document.getElementById('calorieBar');
+      if (pct >= 100) bar.className = 'bg-red-400 rounded-full h-2 transition-all duration-500';
+      else if (pct >= 85) bar.className = 'bg-orange-300 rounded-full h-2 transition-all duration-500';
+      else if (pct >= 60) bar.className = 'bg-yellow-300 rounded-full h-2 transition-all duration-500';
+      else bar.className = 'bg-white rounded-full h-2 transition-all duration-500';
+      const alertEl = document.getElementById('calorieAlert');
+      if (netCalories >= calorieGoal && calorieGoal > 0) {
+        alertEl.textContent = 'แคลอรี่วันนี้เต็มแล้ว';
+        alertEl.classList.remove('hidden');
+        if (!calorieNotifiedToday) {
+          calorieNotifiedToday = true;
+          notifyCalorieGoalReached(netCalories);
+        }
+      } else {
+        alertEl.classList.add('hidden');
+      }
+      saveDailyCalorieSummary(netCalories);
+    }).catch(err => {
+      console.warn('⚠️ Failed to fetch exercise logs:', err.message);
+      // Fallback: แสดงแคลอรี่จากอาหารเท่านั้น
+      document.getElementById('todayCalories').textContent = foodTotal.toLocaleString();
+      const pct = Math.min(100, (foodTotal / calorieGoal) * 100);
+      document.getElementById('calorieBar').style.width = pct + '%';
+    });
   }
 
   async function saveDailyCalorieSummary(total) {

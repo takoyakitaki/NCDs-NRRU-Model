@@ -309,10 +309,10 @@
       return `<div class="fade-in bg-white border ${done?'border-green-200 bg-green-50':'border-gray-100'} rounded-3xl p-4 shadow-sm flex items-center gap-4">
         <div class="w-14 h-14 rounded-2xl ${done?'bg-green-100':'bg-amber-50'} flex items-center justify-center text-3xl flex-shrink-0">${done?'✅':m.icon}</div>
         <div class="flex-1 min-w-0">
-          <p class="font-black text-gray-800 text-sm">${m.title}</p>
+          <p class="font-black text-gray-800 text-base">${m.title}</p>
           <p class="text-xs text-gray-400 mt-0.5 leading-snug">${m.desc}</p>
           <div class="flex items-center gap-1 mt-1">
-            <span class="text-xs font-black text-yellow-500">+${m.points} แต้ม</span>
+            <span class="text-xs font-black" style="color: #fb7912;">+${m.points} แต้ม</span>
             <span class="text-xs font-black text-gray-300">· ${p.detail}</span>
           </div>
         </div>
