@@ -119,6 +119,23 @@
           <textarea id="reminderNote" rows="2" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors resize-none"
             placeholder="เช่น หลังอาหารเช้า / อาคาร A ชั้น 3"></textarea>
         </div>
+        <div>
+          <label class="text-xs text-gray-400 font-bold uppercase">เลือกวันแจ้งเตือน</label>
+          <p class="text-[10px] text-gray-500 mt-1">เลือกได้ทั้ง 7 วัน จากนั้นระบบจะเตือนตามเวลาที่ตั้งไว้</p>
+          <div class="grid grid-cols-7 gap-1 mt-3">
+            <button type="button" onclick="toggleRepeatDay(0)" id="weekdayBtn0" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">อา</button>
+            <button type="button" onclick="toggleRepeatDay(1)" id="weekdayBtn1" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">จ</button>
+            <button type="button" onclick="toggleRepeatDay(2)" id="weekdayBtn2" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">อ</button>
+            <button type="button" onclick="toggleRepeatDay(3)" id="weekdayBtn3" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">พ</button>
+            <button type="button" onclick="toggleRepeatDay(4)" id="weekdayBtn4" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">พฤ</button>
+            <button type="button" onclick="toggleRepeatDay(5)" id="weekdayBtn5" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">ศ</button>
+            <button type="button" onclick="toggleRepeatDay(6)" id="weekdayBtn6" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">ส</button>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button type="button" onclick="selectAllDays()" class="flex-1 rounded-2xl px-3 py-2 text-xs font-black text-white bg-gradient-to-r from-orange-500 to-orange-600">ทุกวัน</button>
+            <button type="button" onclick="clearSelectedDays()" class="flex-1 rounded-2xl px-3 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200">ไม่เลือกวัน</button>
+          </div>
+        </div>
       </div>
 
       <button onclick="saveReminder()"
@@ -176,11 +193,15 @@
   const uid = session.uid;
 
   let selectedType = 'medicine';
+  let selectedRepeatDays = [];
   let reminders = [];
+
+  const WEEKDAY_LABELS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 
   const today = new Date();
   document.getElementById('reminderDate').value = formatLocalDate(today);
   document.getElementById('reminderTime').value = `${String(today.getHours()).padStart(2,'0')}:${String(today.getMinutes()).padStart(2,'0')}`;
+  renderRepeatDayButtons();
 
   window.selectType = (type) => {
     selectedType = type;
@@ -223,10 +244,13 @@
         uid, type: selectedType, title, note,
         date, time, scheduledAt,
         status: 'active',
+        repeatDays: selectedRepeatDays.slice().sort((a,b)=>a-b),
         createdAt: new Date().toISOString()
       });
       document.getElementById('reminderTitle').value = '';
       document.getElementById('reminderNote').value = '';
+      selectedRepeatDays = [];
+      renderRepeatDayButtons();
     } catch (err) {
       alert('บันทึกแจ้งเตือนไม่สำเร็จ: ' + err.message);
     }
@@ -252,6 +276,7 @@
       const icon = item.type === 'appointment' ? '🩺' : '💊';
       const typeLabel = item.type === 'appointment' ? 'หมอนัด' : 'กินยา';
       const dateText = dueDate.toLocaleString('th-TH', { dateStyle:'medium', timeStyle:'short' });
+      const repeatText = formatRepeatLabel(item);
       return `<div class="fade-in bg-white border ${isOverdue ? 'border-red-200 bg-red-50' : 'border-gray-100'} rounded-2xl p-3 flex items-center gap-3 shadow-sm">
         <div class="w-11 h-11 rounded-xl ${item.type === 'appointment' ? 'bg-sky-50' : 'bg-teal-50'} flex items-center justify-center text-xl flex-shrink-0">${icon}</div>
         <div class="flex-1 min-w-0">
@@ -260,6 +285,7 @@
             <span class="text-[10px] font-bold ${isOverdue ? 'text-red-500 bg-red-100' : 'text-teal-600 bg-teal-50'} px-2 py-0.5 rounded-full">${isOverdue ? 'เลยเวลา' : typeLabel}</span>
           </div>
           <p class="text-xs text-gray-400 mt-0.5">${dateText}</p>
+          ${repeatText ? `<p class="text-[10px] text-orange-600 font-black mt-1">${escapeHtml(repeatText)}</p>` : ''}
           ${item.note ? `<p class="text-[11px] text-gray-400 truncate mt-0.5">${escapeHtml(item.note)}</p>` : ''}
         </div>
         ${item.status === 'done'
@@ -268,6 +294,90 @@
         <button onclick="deleteReminder('${item.id}')" class="text-gray-300 hover:text-red-400 text-lg flex-shrink-0">🗑</button>
       </div>`;
     }).join('');
+  };
+
+  function formatRepeatLabel(item) {
+    if (!item.repeatDays || !item.repeatDays.length) return '';
+    if (item.repeatDays.length === 7) return 'แจ้งเตือนทุกวัน';
+    const names = item.repeatDays
+      .slice()
+      .sort((a,b) => a - b)
+      .map(d => WEEKDAY_LABELS[d]);
+    return `แจ้งเตือนทุกๆ ${names.join(' / ')}`;
+  }
+
+  function getNextReminderSchedule(item) {
+    const current = new Date(item.scheduledAt);
+    if (!Array.isArray(item.repeatDays) || item.repeatDays.length === 0) {
+      return item.scheduledAt;
+    }
+    const candidates = item.repeatDays.slice().sort((a,b)=>a-b);
+    const next = new Date(current);
+    next.setSeconds(0,0);
+    const nextTime = { h: current.getHours(), m: current.getMinutes() };
+    next.setDate(next.getDate() + 1);
+    for (let i = 0; i < 14; i++) {
+      const day = next.getDay();
+      if (candidates.includes(day)) {
+        next.setHours(nextTime.h, nextTime.m, 0, 0);
+        return next.toISOString().slice(0,19);
+      }
+      next.setDate(next.getDate() + 1);
+    }
+    return item.scheduledAt;
+  }
+
+  function renderRepeatDayButtons() {
+    for (let i = 0; i < 7; i++) {
+      const button = document.getElementById(`weekdayBtn${i}`);
+      if (!button) continue;
+      if (selectedRepeatDays.includes(i)) {
+        button.className = 'rounded-2xl px-2 py-2 text-[10px] font-black text-white bg-gradient-to-r from-orange-500 to-orange-600';
+      } else {
+        button.className = 'rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition';
+      }
+    }
+  }
+
+  function toggleRepeatDay(day) {
+    const idx = selectedRepeatDays.indexOf(day);
+    if (idx === -1) selectedRepeatDays.push(day);
+    else selectedRepeatDays.splice(idx, 1);
+    renderRepeatDayButtons();
+  }
+
+  function selectAllDays() {
+    selectedRepeatDays = [0,1,2,3,4,5,6];
+    renderRepeatDayButtons();
+  }
+
+  function clearSelectedDays() {
+    selectedRepeatDays = [];
+    renderRepeatDayButtons();
+  }
+
+  window.completeReminder = async (id) => {
+    const item = reminders.find(r => r.id === id);
+    if (!item) return;
+    try {
+      if (Array.isArray(item.repeatDays) && item.repeatDays.length > 0) {
+        const nextScheduledAt = getNextReminderSchedule(item);
+        await updateDoc(doc(db, 'reminders', id), {
+          scheduledAt: nextScheduledAt,
+          status: 'active',
+          notifiedAt: null,
+          notifyStatus: null,
+          lastCompletedAt: new Date().toISOString()
+        });
+      } else {
+        await updateDoc(doc(db, 'reminders', id), {
+          status: 'done',
+          completedAt: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      alert('อัปเดตสถานะไม่สำเร็จ: ' + err.message);
+    }
   };
 
   function renderNextReminder() {
@@ -318,17 +428,6 @@
   }
 
   setInterval(checkDueMedicineReminders, 60000);
-
-  window.completeReminder = async (id) => {
-    try {
-      await updateDoc(doc(db, 'reminders', id), {
-        status: 'done',
-        completedAt: new Date().toISOString()
-      });
-    } catch (err) {
-      alert('อัปเดตสถานะไม่สำเร็จ: ' + err.message);
-    }
-  };
 
   window.deleteReminder = async (id) => {
     if (!confirm('ลบแจ้งเตือนนี้?')) return;
