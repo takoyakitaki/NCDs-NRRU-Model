@@ -339,22 +339,22 @@
     }
   }
 
-  function toggleRepeatDay(day) {
+  window.toggleRepeatDay = (day) => {
     const idx = selectedRepeatDays.indexOf(day);
     if (idx === -1) selectedRepeatDays.push(day);
     else selectedRepeatDays.splice(idx, 1);
     renderRepeatDayButtons();
-  }
+  };
 
-  function selectAllDays() {
+  window.selectAllDays = () => {
     selectedRepeatDays = [0,1,2,3,4,5,6];
     renderRepeatDayButtons();
-  }
+  };
 
-  function clearSelectedDays() {
+  window.clearSelectedDays = () => {
     selectedRepeatDays = [];
     renderRepeatDayButtons();
-  }
+  };
 
   window.completeReminder = async (id) => {
     const item = reminders.find(r => r.id === id);
@@ -440,10 +440,10 @@
 
   function escapeHtml(value = '') {
     return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
+      .replace(/&/g, '&')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
+      .replace(/"/g, '"')
       .replace(/'/g, '&#039;');
   }
 
