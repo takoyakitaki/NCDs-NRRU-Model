@@ -5,124 +5,253 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VitalVibe Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>* { font-family:'Prompt',sans-serif; } table{border-collapse:collapse;width:100%} td,th{border:1px solid #e5e7eb;padding:6px 10px;font-size:12px;text-align:left} th{background:#f9fafb;font-weight:700;}</style>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { font-family:'Prompt',sans-serif; }
+    table{border-collapse:collapse;width:100%}
+    td,th{border:1px solid #e5e7eb;padding:6px 10px;font-size:12px;text-align:left}
+    th{background:#f9fafb;font-weight:700;}
+    .hide-scrollbar::-webkit-scrollbar{display:none}
+    .hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeIn .3s ease-out forwards}
+    .tab-active{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;}
+    .tab-inactive{background:#e5e7eb;color:#6b7280;}
+    .status-pending{background:#fef3c7;color:#d97706;}
+    .status-confirmed{background:#dbeafe;color:#2563eb;}
+    .status-delivered{background:#d1fae5;color:#059669;}
+    .status-cancelled{background:#fee2e2;color:#dc2626;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6;ring:2px solid #3b82f6;}
+  </style>
 </head>
 <body class="bg-gray-50 p-4">
 
-<div class="max-w-6xl mx-auto">
+<div class="max-w-7xl mx-auto">
+  <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-black text-gray-900">🛠️ VitalVibe Admin Panel</h1>
-      <p class="text-sm text-gray-500">ข้อมูลทั้งหมดในระบบ</p>
+      <p class="text-sm text-gray-500">จัดการระบบทั้งหมด</p>
     </div>
-    <div id="adminStatus" class="text-sm font-bold text-red-500">กำลังตรวจสอบสิทธิ์…</div>
+    <div class="flex items-center gap-3">
+      <span id="adminStatus" class="text-sm font-bold text-red-500">กำลังตรวจสอบสิทธิ์…</span>
+      <button onclick="logout()" class="text-xs font-bold text-gray-400 hover:text-red-500 transition">🚪 ออก</button>
+    </div>
   </div>
 
   <!-- Nav tabs -->
-  <div class="flex flex-wrap gap-2 mb-6">
-    <button onclick="showSection('dashboard')"  class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white">📊 Dashboard</button>
-    <button onclick="showSection('users')"      class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">👥 Users</button>
-    <button onclick="showSection('missions')"   class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">🏆 Missions</button>
-    <button onclick="showSection('rewards')"    class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">🎁 Rewards</button>
-    <button onclick="showSection('foodLogs')"   class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">🍱 Food Logs</button>
-    <button onclick="showSection('healthRecording')" class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">📋 Health Recording</button>
-    <button onclick="showSection('healthLogs')" class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">📊 Health Logs</button>
-    <button onclick="showSection('reminders')"  class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">⏰ Reminders</button>
-    <button onclick="showSection('redemptions')" class="admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600">🧾 Redemptions</button>
+  <div class="flex flex-wrap gap-1.5 mb-6 hide-scrollbar overflow-x-auto">
+    <button onclick="showSection('dashboard')"  class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-active">📊 Dashboard</button>
+    <button onclick="showSection('users')"      class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">👥 Users</button>
+    <button onclick="showSection('missions')"   class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">🏆 Missions</button>
+    <button onclick="showSection('rewards')"    class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">🎁 Rewards</button>
+    <button onclick="showSection('foodLogs')"   class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">🍱 Food Logs</button>
+    <button onclick="showSection('exerciseLogs')" class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">🏃 Exercise</button>
+    <button onclick="showSection('healthLogs')" class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">📋 Health Logs</button>
+    <button onclick="showSection('bodyStats')"  class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">📊 Body Stats</button>
+    <button onclick="showSection('reminders')"  class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">⏰ Reminders</button>
+    <button onclick="showSection('redemptions')" class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">🧾 Redemptions</button>
+    <button onclick="showSection('transactions')" class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">💰 Transactions</button>
+    <button onclick="showSection('settings')"   class="admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive">⚙️ Settings</button>
   </div>
 
-  <!-- Sections -->
+  <!-- Section Content -->
   <div id="sectionContent" class="bg-white border border-gray-200 rounded-xl p-4 overflow-x-auto min-h-64">
     <p class="text-gray-400 text-sm">เลือกหัวข้อด้านบน</p>
   </div>
 
-  <!-- Modal for Add/Edit Reward -->
+  <!-- ===== MODALS ===== -->
+
+  <!-- Reward Modal -->
   <div id="rewardModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
       <h2 id="rewardModalTitle" class="font-black text-gray-800 mb-4">➕ เพิ่มของรางวัล</h2>
       <div class="space-y-3 mb-4">
-        <div><label class="text-xs font-bold text-gray-500">ชื่อรางวัล</label>
+        <div><label class="text-xs font-bold text-gray-500">ชื่อรางวัล *</label>
           <input id="rTitle" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="Starbucks Gift Card"></div>
-        <div><label class="text-xs font-bold text-gray-500">แต้มที่ต้องใช้</label>
+        <div><label class="text-xs font-bold text-gray-500">แต้มที่ต้องใช้ *</label>
           <input id="rPoints" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="500"></div>
         <div><label class="text-xs font-bold text-gray-500">emoji / ไอคอน</label>
           <input id="rImage" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="☕"></div>
         <div><label class="text-xs font-bold text-gray-500">คำอธิบาย</label>
           <input id="rDesc" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="คำอธิบายรางวัล"></div>
+        <div><label class="text-xs font-bold text-gray-500">สต็อก (0 = ไม่จำกัด)</label>
+          <input id="rStock" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="0" value="0"></div>
+        <div><label class="text-xs font-bold text-gray-500">สถานะ</label>
+          <select id="rActive" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+            <option value="true">เปิดใช้งาน</option>
+            <option value="false">ปิดใช้งาน</option>
+          </select></div>
       </div>
       <div class="flex gap-2">
-        <button id="rewardSaveBtn" onclick="saveReward()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">บันทึก</button>
+        <button onclick="saveReward()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">💾 บันทึก</button>
         <button onclick="closeRewardModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-sm">ยกเลิก</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal for Add/Edit Mission -->
+  <!-- Mission Modal -->
   <div id="missionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
       <h2 id="missionModalTitle" class="font-black text-gray-800 mb-4">➕ เพิ่มภารกิจ</h2>
       <div class="space-y-3 mb-4">
-        <div><label class="text-xs font-bold text-gray-500">ชื่อภารกิจ</label>
+        <div><label class="text-xs font-bold text-gray-500">ชื่อภารกิจ *</label>
           <input id="mTitle" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="บันทึกอาหาร 3 มื้อ"></div>
-        <div><label class="text-xs font-bold text-gray-500">แต้มที่ได้รับ</label>
+        <div><label class="text-xs font-bold text-gray-500">แต้มที่ได้รับ *</label>
           <input id="mPoints" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="50"></div>
         <div><label class="text-xs font-bold text-gray-500">emoji</label>
           <input id="mIcon" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="🍱"></div>
         <div><label class="text-xs font-bold text-gray-500">คำอธิบาย</label>
           <input id="mDesc" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="บันทึกอาหารครบ 3 มื้อ"></div>
+        <div><label class="text-xs font-bold text-gray-500">ประเภทภารกิจ *</label>
+          <select id="mType" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+            <option value="food">🍱 บันทึกอาหาร</option>
+            <option value="weight">⚖️ ชั่งน้ำหนัก</option>
+            <option value="health">📋 บันทึกสุขภาพ</option>
+            <option value="photo">📷 ถ่ายรูปอาหาร</option>
+            <option value="calorieGoal">🎯 กินไม่เกินเป้าหมาย</option>
+            <option value="exercise">🏃 ออกกำลังกาย</option>
+          </select></div>
+        <div><label class="text-xs font-bold text-gray-500">จำนวนเป้าหมาย (target)</label>
+          <input id="mTarget" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="1" value="1"></div>
+        <div><label class="text-xs font-bold text-gray-500">สถานะ</label>
+          <select id="mActive" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+            <option value="true">เปิดใช้งาน</option>
+            <option value="false">ปิดใช้งาน</option>
+          </select></div>
       </div>
       <div class="flex gap-2">
-        <button id="missionSaveBtn" onclick="saveMission()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">บันทึก</button>
+        <button onclick="saveMission()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">💾 บันทึก</button>
         <button onclick="closeMissionModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-sm">ยกเลิก</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg z-40"></div>
+  <!-- User Edit Modal -->
+  <div id="userEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <h2 class="font-black text-gray-800 mb-4">✏️ แก้ไขผู้ใช้</h2>
+      <div class="space-y-3 mb-4" id="userEditFields">
+        <div><label class="text-xs font-bold text-gray-500">UID</label>
+          <p id="ue_uid" class="text-sm font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg mt-1"></p></div>
+        <div><label class="text-xs font-bold text-gray-500">ชื่อ</label>
+          <input id="ue_name" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">อีเมล</label>
+          <input id="ue_email" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">แต้ม</label>
+          <input id="ue_points" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">เป้าหมายแคลอรี่ (kcal)</label>
+          <input id="ue_calorieGoal" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">เป้าหมายออกกำลังกาย (kcal)</label>
+          <input id="ue_exerciseGoal" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">ส่วนสูงเริ่มต้น (cm)</label>
+          <input id="ue_height" type="number" step="0.1" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">น้ำหนักเริ่มต้น (kg)</label>
+          <input id="ue_weight" type="number" step="0.1" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">วันเกิด</label>
+          <input id="ue_birth" type="date" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">LINE UID</label>
+          <input id="ue_lineUid" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+        <div><label class="text-xs font-bold text-gray-500">เบอร์โทร</label>
+          <input id="ue_phone" class="w-full border rounded-lg px-3 py-2 text-sm mt-1"></div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveUserEdit()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">💾 บันทึก</button>
+        <button onclick="closeUserEditModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-sm">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
 
-</div><!-- /max-w -->
+  <!-- Redemption Status Modal -->
+  <div id="redemptionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <h2 class="font-black text-gray-800 mb-4">📦 จัดการคำขอแลกของ</h2>
+      <div id="redemptionDetail" class="space-y-3 mb-4"></div>
+      <div class="space-y-3 mb-4">
+        <div><label class="text-xs font-bold text-gray-500">สถานะ</label>
+          <select id="rm_status" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+            <option value="pending">⏳ รอยืนยัน</option>
+            <option value="confirmed">✅ ยืนยันแล้ว</option>
+            <option value="delivered">📬 ส่งแล้ว</option>
+            <option value="cancelled">❌ ยกเลิก</option>
+          </select></div>
+        <div><label class="text-xs font-bold text-gray-500">หมายเหตุ</label>
+          <textarea id="rm_note" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="หมายเหตุเพิ่มเติม"></textarea></div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveRedemptionStatus()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">💾 อัปเดต</button>
+        <button onclick="closeRedemptionModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-sm">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <h2 class="font-black text-gray-800 mb-4">⚙️ ตั้งค่าระบบ</h2>
+      <div class="space-y-4 mb-4" id="settingsFields">
+        <div>
+          <label class="text-xs font-bold text-gray-500">ค่าเริ่มต้นเป้าหมายแคลอรี่ (kcal)</label>
+          <input id="s_defaultCalorieGoal" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="2000">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">ค่าเริ่มต้นเป้าหมายออกกำลังกาย (kcal)</label>
+          <input id="s_defaultExerciseGoal" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="300">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">Admin UIDs (คั่นด้วยคอมม่า)</label>
+          <textarea id="s_adminUids" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="uid1,uid2,uid3"></textarea>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">เปิด/ปิด ระบบ LINE Notify</label>
+          <select id="s_lineNotify" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
+            <option value="true">เปิด</option>
+            <option value="false">ปิด</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="saveSettings()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">💾 บันทึก</button>
+        <button onclick="closeSettingsModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-sm">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg z-40"></div>
+</div>
 
 <script type="module">
   import { db, ADMIN_UIDS } from '../lib/firebase.js';
-  import { getSession } from '../lib/auth.js';
+  import { getSession, clearSession } from '../lib/auth.js';
   import {
-    collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, getDoc
+    collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, getDoc, orderBy, limit, setDoc
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+  import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+  import { auth } from '../lib/firebase.js';
 
-  // ── FIX: HTML-escape ทุกค่าที่มาจากผู้ใช้ก่อนใส่ลงไปใน innerHTML ──
-  // ป้องกัน Stored XSS: displayName / email / title / desc / image / icon ฯลฯ
-  // ล้วนเป็นข้อมูลที่ผู้ใช้ทั่วไปกรอกเองได้ (เช่นตอนสมัครผ่านหน้า login)
-  // ถ้าไม่ escape คนร้ายตั้งชื่อเป็น <img src=x onerror=...> แล้วรันสคริปต์ใน
-  // หน้า admin panel ได้ทันที (อันตรายมากเพราะหน้านี้มีสิทธิ์ลบ/แก้ข้อมูลทั้งระบบ)
+  // ── XSS Protection ──
   const escapeHtml = (val) => {
     const str = val === null || val === undefined ? '–' : (typeof val === 'object' ? JSON.stringify(val) : String(val));
     return str.replace(/[&<>"']/g, (ch) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;'
     }[ch]));
   };
 
-  // Check admin status
+  // ── Auth Check ──
   const session = getSession();
   const isAdmin = session?.uid && ADMIN_UIDS.includes(session.uid);
 
-  // Store admin status in sessionStorage for other pages
   if (session?.uid) {
     sessionStorage.setItem('vv_isAdmin', isAdmin);
-    console.log(`%c🔐 User: ${session.uid.substring(0,8)}... | Admin: ${isAdmin}`,
-      isAdmin ? 'color:green;font-weight:bold' : 'color:orange;font-weight:bold');
   }
 
   document.getElementById('adminStatus').textContent = isAdmin ? '✅ Admin' : '❌ ไม่มีสิทธิ์';
-  document.getElementById('adminStatus').className   = isAdmin
+  document.getElementById('adminStatus').className = isAdmin
     ? 'text-sm font-bold text-green-600'
     : 'text-sm font-bold text-red-500';
 
-  // ── FIX: ไม่เปิดเผยรายชื่อ ADMIN_UIDS ให้คนที่ไม่ใช่ admin เห็น ──
-  // เดิมหน้านี้ print ทั้ง array ของ admin UID ออกมาตรงๆ ทำให้ผู้ใช้ทั่วไป
-  // (ที่ login แล้วแต่ไม่ใช่ admin) รู้ว่า UID ไหนเป็น admin บ้าง ซึ่งเป็น
-  // ข้อมูลอ่อนไหวที่ไม่ควรหลุดออกไปฝั่ง client โดยไม่จำเป็น
   if (!isAdmin && session?.uid) {
     document.getElementById('sectionContent').innerHTML = `
       <div class="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -143,8 +272,10 @@
   let currentSection = '';
   let editingRewardId = null;
   let editingMissionId = null;
+  let editingUserId = null;
+  let editingRedemptionId = null;
 
-  // Toast notification
+  // ── Toast ──
   const showToast = (msg, type = 'success') => {
     const toast = document.getElementById('toast');
     toast.textContent = msg;
@@ -155,99 +286,424 @@
     setTimeout(() => toast.classList.add('hidden'), 3000);
   };
 
-  // Dashboard section
+  // ── Logout ──
+  window.logout = async () => {
+    if (!confirm('ออกจากระบบ?')) return;
+    try { await signOut(auth); } catch (_) {}
+    clearSession();
+    window.location.href = '/login.html';
+  };
+
+  // ── Format date ──
+  const fmtDate = (d) => {
+    if (!d) return '–';
+    try { return new Date(d).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }); }
+    catch { return String(d); }
+  };
+
+  const fmtShortDate = (d) => {
+    if (!d) return '–';
+    try { return new Date(d).toLocaleDateString('th-TH', { dateStyle: 'short' }); }
+    catch { return String(d); }
+  };
+
+  // ── Tab switching ──
+  window.showSection = async (section) => {
+    if (!isAdmin) return;
+    currentSection = section;
+    document.querySelectorAll('.admin-tab').forEach(b => {
+      b.className = 'admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive';
+    });
+    const activeTab = [...document.querySelectorAll('.admin-tab')]
+      .find(b => b.getAttribute('onclick') === `showSection('${section}')`);
+    if (activeTab) activeTab.className = 'admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-active';
+
+    switch (section) {
+      case 'dashboard': return await loadDashboard();
+      case 'users': return await loadUsers();
+      case 'missions': return await loadCollection('missions', renderMissions);
+      case 'rewards': return await loadCollection('rewards', renderRewards);
+      case 'foodLogs': return await loadCollection('foodLogs', renderFoodLogs);
+      case 'exerciseLogs': return await loadCollection('exerciseLogs', renderExerciseLogs);
+      case 'healthLogs': return await loadCollection('healthLogs', renderHealthLogs);
+      case 'bodyStats': return await loadCollection('bodyStats', renderBodyStats);
+      case 'reminders': return await loadCollection('reminders', renderReminders);
+      case 'redemptions': return await loadCollection('redemptions', renderRedemptions);
+      case 'transactions': return await loadCollection('transactions', renderTransactions);
+      case 'settings': return await loadSettings();
+      default: return await loadDashboard();
+    }
+  };
+
+  // ── Generic collection loader ──
+  const loadCollection = async (colName, renderFn) => {
+    const el = document.getElementById('sectionContent');
+    el.innerHTML = '<p class="text-gray-400 text-sm animate-pulse">กำลังโหลด…</p>';
+    try {
+      const snap = await getDocs(collection(db, colName));
+      const docs = snap.docs
+        .map(d => ({ _id: d.id, ...d.data() }))
+        .sort((a, b) => String(b.createdAt || b.redeemedAt || b.timestamp || b.scheduledAt || '').localeCompare(String(a.createdAt || a.redeemedAt || a.timestamp || a.scheduledAt || '')));
+      renderFn(docs);
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
+    }
+  };
+
+  // ── Generic table renderer ──
+  const renderGenericTable = (docs, title, extraButtons = '') => {
+    const el = document.getElementById('sectionContent');
+    if (!docs.length) {
+      el.innerHTML = `<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูล</p>${extraButtons}`;
+      return;
+    }
+    const cols = Object.keys(docs[0]).filter(k => k !== '_id');
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${docs.length} รายการ</p>
+    </div><div class="overflow-x-auto"><table><thead><tr><th>#</th>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}<th>Action</th></tr></thead><tbody>`;
+    docs.forEach((d, i) => {
+      html += `<tr>
+        <td class="text-gray-400">${i + 1}</td>
+        ${cols.map(c => {
+          const v = d[c];
+          const raw = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '–');
+          const display = raw.length > 80 ? raw.slice(0, 80) + '…' : raw;
+          return `<td class="max-w-xs truncate" title="${escapeHtml(raw)}">${escapeHtml(display)}</td>`;
+        }).join('')}
+        <td><button onclick="deleteRow('${escapeHtml(d._id)}','${colName}')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑 ลบ</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ── Delete row ──
+  window.deleteRow = async (id, col) => {
+    if (!confirm(`ลบ ID: ${id} ?`)) return;
+    try {
+      await deleteDoc(doc(db, col, id));
+      showToast('ลบข้อมูลสำเร็จ');
+      window.showSection(currentSection);
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  // ============================================================
+  // 📊 DASHBOARD
+  // ============================================================
   const loadDashboard = async () => {
     const el = document.getElementById('sectionContent');
     el.innerHTML = '<p class="text-gray-400 text-sm animate-pulse">กำลังโหลด…</p>';
 
     try {
-      const missions = await getDocs(collection(db, 'missions'));
-      const rewards = await getDocs(collection(db, 'rewards'));
-      const users = await getDocs(collection(db, 'users'));
-      const redemptions = await getDocs(collection(db, 'redemptions'));
+      const today = new Date().toISOString().slice(0, 10);
 
-      const today = new Date().toDateString();
-      const missionsToday = missions.docs.filter(d => new Date(d.data().createdAt).toDateString() === today).length;
-      const rewardsToday = rewards.docs.filter(d => new Date(d.data().createdAt).toDateString() === today).length;
+      const [
+        usersSnap, missionsSnap, rewardsSnap, redemptionsSnap,
+        foodSnap, exerciseSnap, healthSnap, remindersSnap,
+        transactionsSnap, bodyStatsSnap
+      ] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'missions')),
+        getDocs(collection(db, 'rewards')),
+        getDocs(collection(db, 'redemptions')),
+        getDocs(query(collection(db, 'foodLogs'), where('date', '==', today))),
+        getDocs(query(collection(db, 'exerciseLogs'), where('date', '==', today))),
+        getDocs(collection(db, 'healthLogs')),
+        getDocs(collection(db, 'reminders')),
+        getDocs(collection(db, 'transactions')),
+        getDocs(collection(db, 'bodyStats'))
+      ]);
+
+      const pendingRedemptions = redemptionsSnap.docs.filter(d => d.data().status === 'pending').length;
+      const healthToday = healthSnap.docs.filter(d => {
+        const c = d.data().createdAt;
+        return c && c.slice(0, 10) === today;
+      }).length;
+      const activeReminders = remindersSnap.docs.filter(d => d.data().status === 'active').length;
+      const totalPoints = usersSnap.docs.reduce((sum, d) => sum + (d.data().points || 0), 0);
+
+      // Calorie history for chart (last 7 days)
+      const calorieData = [];
+      const calorieLabels = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        const label = d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' });
+        calorieLabels.push(label);
+        const dayFoods = foodSnap.docs.filter(f => f.data().date === key);
+        const dayCal = dayFoods.reduce((s, f) => s + (f.data().calories || 0), 0);
+        calorieData.push(dayCal);
+      }
 
       el.innerHTML = `
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p class="text-gray-600 text-xs font-bold">🏆 Missions ทั้งหมด</p>
-            <p class="text-3xl font-black text-blue-600 mt-2">${missions.size}</p>
-            <p class="text-xs text-gray-500 mt-1">วันนี้: ${missionsToday}</p>
+        <div class="space-y-4">
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">👥 Users</p>
+              <p class="text-2xl font-black text-blue-600 mt-1">${usersSnap.size}</p>
+              <p class="text-xs text-gray-500">ทั้งหมดในระบบ</p>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">🍱 อาหารวันนี้</p>
+              <p class="text-2xl font-black text-green-600 mt-1">${foodSnap.size}</p>
+              <p class="text-xs text-gray-500">รายการ</p>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">🏃 ออกกำลังวันนี้</p>
+              <p class="text-2xl font-black text-orange-600 mt-1">${exerciseSnap.size}</p>
+              <p class="text-xs text-gray-500">รายการ</p>
+            </div>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">🏆 Missions</p>
+              <p class="text-2xl font-black text-purple-600 mt-1">${missionsSnap.size}</p>
+              <p class="text-xs text-gray-500">ทั้งหมด</p>
+            </div>
+            <div class="bg-pink-50 border border-pink-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">🎁 Rewards</p>
+              <p class="text-2xl font-black text-pink-600 mt-1">${rewardsSnap.size}</p>
+              <p class="text-xs text-gray-500">ทั้งหมด</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">⏳ รออนุมัติ</p>
+              <p class="text-2xl font-black text-amber-600 mt-1">${pendingRedemptions}</p>
+              <p class="text-xs text-gray-500">คำขอแลกของ</p>
+            </div>
+            <div class="bg-teal-50 border border-teal-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">📋 สุขภาพวันนี้</p>
+              <p class="text-2xl font-black text-teal-600 mt-1">${healthToday}</p>
+              <p class="text-xs text-gray-500">รายการ</p>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">⏰ แจ้งเตือน</p>
+              <p class="text-2xl font-black text-indigo-600 mt-1">${activeReminders}</p>
+              <p class="text-xs text-gray-500">กำลังใช้งาน</p>
+            </div>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">🧾 Redemptions</p>
+              <p class="text-2xl font-black text-red-600 mt-1">${redemptionsSnap.size}</p>
+              <p class="text-xs text-gray-500">ทั้งหมด</p>
+            </div>
+            <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">💰 Transactions</p>
+              <p class="text-2xl font-black text-cyan-600 mt-1">${transactionsSnap.size}</p>
+              <p class="text-xs text-gray-500">ทั้งหมด</p>
+            </div>
+            <div class="bg-lime-50 border border-lime-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">📊 Body Stats</p>
+              <p class="text-2xl font-black text-lime-600 mt-1">${bodyStatsSnap.size}</p>
+              <p class="text-xs text-gray-500">ทั้งหมด</p>
+            </div>
+            <div class="bg-rose-50 border border-rose-200 rounded-lg p-3">
+              <p class="text-gray-600 text-xs font-bold">⭐ แต้มรวม</p>
+              <p class="text-2xl font-black text-rose-600 mt-1">${totalPoints.toLocaleString()}</p>
+              <p class="text-xs text-gray-500">ทั้งระบบ</p>
+            </div>
           </div>
-          <div class="bg-pink-50 border border-pink-200 rounded-lg p-4">
-            <p class="text-gray-600 text-xs font-bold">🎁 Rewards ทั้งหมด</p>
-            <p class="text-3xl font-black text-pink-600 mt-2">${rewards.size}</p>
-            <p class="text-xs text-gray-500 mt-1">วันนี้: ${rewardsToday}</p>
+
+          <!-- Calorie Chart (last 7 days) -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 class="font-bold text-gray-800 mb-3">📈 แคลอรี่รวม 7 วันล่าสุด</h3>
+            <canvas id="dashboardChart" height="200"></canvas>
           </div>
-          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <p class="text-gray-600 text-xs font-bold">👥 Users ทั้งหมด</p>
-            <p class="text-3xl font-black text-purple-600 mt-2">${users.size}</p>
-            <p class="text-xs text-gray-500 mt-1">Active users</p>
-          </div>
-          <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p class="text-gray-600 text-xs font-bold">🧾 Redemptions</p>
-            <p class="text-3xl font-black text-orange-600 mt-2">${redemptions.size}</p>
-            <p class="text-xs text-gray-500 mt-1">Total exchanges</p>
+
+          <!-- Quick Actions -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button onclick="showSection('redemptions')" class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left hover:bg-amber-100 transition">
+              <p class="text-lg">📦</p>
+              <p class="font-bold text-amber-800 text-sm">จัดการคำขอแลกของ</p>
+              <p class="text-xs text-amber-600">${pendingRedemptions} รายการรออนุมัติ</p>
+            </button>
+            <button onclick="showSection('users')" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left hover:bg-blue-100 transition">
+              <p class="text-lg">👥</p>
+              <p class="font-bold text-blue-800 text-sm">จัดการผู้ใช้</p>
+              <p class="text-xs text-blue-600">${usersSnap.size} คน</p>
+            </button>
+            <button onclick="showSection('missions')" class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-left hover:bg-purple-100 transition">
+              <p class="text-lg">🏆</p>
+              <p class="font-bold text-purple-800 text-sm">จัดการภารกิจ</p>
+              <p class="text-xs text-purple-600">${missionsSnap.size} ภารกิจ</p>
+            </button>
+            <button onclick="showSection('settings')" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-left hover:bg-gray-100 transition">
+              <p class="text-lg">⚙️</p>
+              <p class="font-bold text-gray-800 text-sm">ตั้งค่าระบบ</p>
+              <p class="text-xs text-gray-600">ค่าต่างๆ ของระบบ</p>
+            </button>
           </div>
         </div>
       `;
+
+      // Render chart
+      setTimeout(() => {
+        const ctx = document.getElementById('dashboardChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: calorieLabels,
+            datasets: [{
+              label: 'แคลอรี่ (kcal)',
+              data: calorieData,
+              backgroundColor: '#3b82f6',
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }, 100);
+
     } catch (err) {
       el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
     }
   };
 
-  window.showSection = async (section) => {
-    if (!isAdmin) return;
-    currentSection = section;
-    document.querySelectorAll('.admin-tab').forEach(b=>b.className='admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-gray-200 text-gray-600');
-    const activeTab = [...document.querySelectorAll('.admin-tab')]
-      .find(b => b.getAttribute('onclick') === `showSection('${section}')`);
-    if (activeTab) activeTab.className='admin-tab px-4 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white';
-
-    if (section === 'dashboard') {
-      return await loadDashboard();
-    }
-
-    // Health Recording section
-    if (section === 'healthRecording') {
-      return await loadHealthRecording();
-    }
-
+  // ============================================================
+  // 👥 USERS
+  // ============================================================
+  const loadUsers = async () => {
     const el = document.getElementById('sectionContent');
     el.innerHTML = '<p class="text-gray-400 text-sm animate-pulse">กำลังโหลด…</p>';
 
     try {
-      const snap = await getDocs(collection(db, section));
-      const docs = snap.docs
-        .map(d=>({_id:d.id,...d.data()}))
-        .sort((a,b)=>String(b.createdAt || b.redeemedAt || '').localeCompare(String(a.createdAt || a.redeemedAt || '')));
+      const snap = await getDocs(collection(db, 'users'));
+      const users = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
 
-      if (!docs.length) {
-        el.innerHTML = `<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูล</p>`;
-        if (section === 'rewards') {
-          el.innerHTML += `<button onclick="openRewardModal()" class="mt-4 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg">➕ เพิ่มรางวัล</button>`;
-        }
-        if (section === 'missions') {
-          el.innerHTML += `<button onclick="openMissionModal()" class="mt-4 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-lg">➕ เพิ่มภารกิจ</button>`;
-        }
-        return;
-      }
+      let html = `
+        <div class="flex justify-between items-center mb-3">
+          <p class="text-sm font-bold text-gray-600">${users.length} ผู้ใช้</p>
+          <div class="flex gap-2">
+            <input id="userSearch" oninput="filterUsers()" placeholder="🔍 ค้นหาชื่อ/อีเมล/UID"
+              class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold w-48">
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>UID</th>
+                <th>ชื่อ</th>
+                <th>อีเมล</th>
+                <th>LINE UID</th>
+                <th>⭐ แต้ม</th>
+                <th>🎯 แคลอรี่</th>
+                <th>🏃 ออกกำลัง</th>
+                <th>📏 สูง/หนัก</th>
+                <th>📱 เบอร์</th>
+                <th>🎂 วันเกิด</th>
+                <th>📝 ลงทะเบียน</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+      `;
 
-      if (section === 'missions') {
-        renderMissions(docs);
-      } else if (section === 'rewards') {
-        renderRewards(docs);
-      } else {
-        renderTable(section, docs);
-      }
+      users.forEach((u, i) => {
+        html += `<tr class="user-row" data-name="${escapeHtml(u.displayName || '').toLowerCase()}" data-email="${escapeHtml(u.email || '').toLowerCase()}" data-uid="${escapeHtml(u._id).toLowerCase()}">
+          <td class="text-gray-400">${i + 1}</td>
+          <td class="font-mono text-xs" title="${escapeHtml(u._id)}">${escapeHtml(u._id.slice(0, 12))}…</td>
+          <td class="font-bold">${escapeHtml(u.displayName || '–')}</td>
+          <td>${escapeHtml(u.email || '–')}</td>
+          <td class="font-mono text-xs">${escapeHtml((u.lineUid || u.lineUserId || '').slice(0, 12)) || '–'}</td>
+          <td class="font-bold text-amber-600">${(u.points || 0).toLocaleString()}</td>
+          <td>${u.calorieGoal || '2000'}</td>
+          <td>${u.exerciseGoal || '300'}</td>
+          <td>${u.initialHeight || '–'} / ${u.initialWeight || '–'}</td>
+          <td>${escapeHtml(u.phone || '–')}</td>
+          <td>${fmtShortDate(u.birthDate)}</td>
+          <td>${fmtShortDate(u.createdAt)}</td>
+          <td>
+            <button onclick="openUserEdit('${u._id}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold">✏️</button>
+            <button onclick="deleteRow('${u._id}','users')" class="text-red-400 hover:text-red-600 text-xs font-bold ml-1">🗑</button>
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table></div>';
+      el.innerHTML = html;
     } catch (err) {
       el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
     }
   };
 
+  window.filterUsers = () => {
+    const q = document.getElementById('userSearch').value.toLowerCase();
+    document.querySelectorAll('.user-row').forEach(row => {
+      const match = row.dataset.name.includes(q) || row.dataset.email.includes(q) || row.dataset.uid.includes(q);
+      row.style.display = match ? '' : 'none';
+    });
+  };
+
+  // ── User Edit Modal ──
+  window.openUserEdit = async (uid) => {
+    editingUserId = uid;
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (!snap.exists()) return showToast('ไม่พบผู้ใช้', 'error');
+      const u = snap.data();
+
+      document.getElementById('ue_uid').textContent = uid;
+      document.getElementById('ue_name').value = u.displayName || '';
+      document.getElementById('ue_email').value = u.email || '';
+      document.getElementById('ue_points').value = u.points || 0;
+      document.getElementById('ue_calorieGoal').value = u.calorieGoal || 2000;
+      document.getElementById('ue_exerciseGoal').value = u.exerciseGoal || 300;
+      document.getElementById('ue_height').value = u.initialHeight || '';
+      document.getElementById('ue_weight').value = u.initialWeight || '';
+      document.getElementById('ue_birth').value = u.birthDate || '';
+      document.getElementById('ue_lineUid').value = u.lineUid || u.lineUserId || '';
+      document.getElementById('ue_phone').value = u.phone || '';
+      document.getElementById('userEditModal').classList.remove('hidden');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  window.closeUserEditModal = () => {
+    document.getElementById('userEditModal').classList.add('hidden');
+    editingUserId = null;
+  };
+
+  window.saveUserEdit = async () => {
+    if (!editingUserId) return;
+    const data = {
+      displayName: document.getElementById('ue_name').value.trim(),
+      email: document.getElementById('ue_email').value.trim(),
+      points: parseInt(document.getElementById('ue_points').value) || 0,
+      calorieGoal: parseInt(document.getElementById('ue_calorieGoal').value) || 2000,
+      exerciseGoal: parseInt(document.getElementById('ue_exerciseGoal').value) || 300,
+      initialHeight: parseFloat(document.getElementById('ue_height').value) || null,
+      initialWeight: parseFloat(document.getElementById('ue_weight').value) || null,
+      birthDate: document.getElementById('ue_birth').value || null,
+      lineUid: document.getElementById('ue_lineUid').value.trim() || null,
+      phone: document.getElementById('ue_phone').value.trim() || null,
+      updatedAt: new Date().toISOString()
+    };
+    try {
+      await updateDoc(doc(db, 'users', editingUserId), data);
+      showToast('อัปเดตผู้ใช้สำเร็จ');
+      closeUserEditModal();
+      loadUsers();
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  // ============================================================
+  // 🏆 MISSIONS
+  // ============================================================
   const renderMissions = (missions) => {
     const el = document.getElementById('sectionContent');
     let html = `<div class="flex justify-between items-center mb-4">
@@ -256,39 +712,21 @@
     </div><div class="space-y-2">`;
 
     missions.forEach(m => {
-      html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+      const active = m.active !== false;
+      html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start fade-in">
         <div>
           <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(m.icon || '🏆')}</span> ${escapeHtml(m.title)}</p>
           <p class="text-xs text-gray-600 mt-1">${escapeHtml(m.desc || '')}</p>
-          <p class="text-sm font-bold text-blue-600 mt-2">⭐ ${escapeHtml(m.points)} แต้ม</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span class="text-sm font-bold text-blue-600">⭐ ${escapeHtml(m.points)} แต้ม</span>
+            <span class="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">${escapeHtml(m.type || 'ทั่วไป')}</span>
+            <span class="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">เป้าหมาย: ${m.target || 1}</span>
+            <span class="text-xs font-bold ${active ? 'text-green-600 bg-green-100' : 'text-red-500 bg-red-100'} px-2 py-0.5 rounded-full">${active ? '✅ เปิด' : '❌ ปิด'}</span>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <button onclick="editMission('${m._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️ แก้ไข</button>
-          <button onclick="deleteRow('missions','${m._id}')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded">🗑 ลบ</button>
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-    el.innerHTML = html;
-  };
-
-  const renderRewards = (rewards) => {
-    const el = document.getElementById('sectionContent');
-    let html = `<div class="flex justify-between items-center mb-4">
-      <p class="text-sm font-bold text-gray-600">${rewards.length} รางวัล</p>
-      <button onclick="openRewardModal()" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg">➕ เพิ่ม</button>
-    </div><div class="space-y-2">`;
-
-    rewards.forEach(r => {
-      html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start">
-        <div>
-          <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(r.image || '🎁')}</span> ${escapeHtml(r.title)}</p>
-          <p class="text-xs text-gray-600 mt-1">${escapeHtml(r.description || '')}</p>
-          <p class="text-sm font-bold text-pink-600 mt-2">💰 ต้องใช้ ${escapeHtml(r.points)} แต้ม</p>
-        </div>
-        <div class="flex gap-2">
-          <button onclick="editReward('${r._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️ แก้ไข</button>
-          <button onclick="deleteRow('rewards','${r._id}')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded">🗑 ลบ</button>
+        <div class="flex gap-2 flex-shrink-0">
+          <button onclick="editMission('${m._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️</button>
+          <button onclick="deleteRow('${m._id}','missions')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded">🗑</button>
         </div>
       </div>`;
     });
@@ -296,302 +734,14 @@
     el.innerHTML = html;
   };
 
-  const renderTable = (section, docs) => {
-    const el = document.getElementById('sectionContent');
-    const cols = Object.keys(docs[0]).filter(k=>k!=='_id');
-    let html = `<div class="flex justify-between items-center mb-3">
-      <p class="text-sm font-bold text-gray-600">${docs.length} รายการ</p>
-    </div><div class="overflow-x-auto"><table><thead><tr><th>#</th>${cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}<th>Action</th></tr></thead><tbody>`;
-
-    docs.forEach((d,i) => {
-      html += `<tr>
-        <td class="text-gray-400">${i+1}</td>
-        ${cols.map(c=>{
-          const v = d[c];
-          const raw = typeof v === 'object' ? JSON.stringify(v) : String(v??'–');
-          const display = raw.length>80 ? raw.slice(0,80)+'…' : raw;
-          // FIX: escape ทั้ง title และเนื้อหาที่แสดง กัน XSS จากข้อมูลผู้ใช้
-          return `<td class="max-w-xs truncate" title="${escapeHtml(raw)}">${escapeHtml(display)}</td>`;
-        }).join('')}
-        <td><button onclick="deleteRow('${section}','${d._id}')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑 ลบ</button></td>
-      </tr>`;
-    });
-    html += '</tbody></table></div>';
-    el.innerHTML = html;
-  };
-
-  window.deleteRow = async (col, id) => {
-    if (!confirm(`ลบ ID: ${id} ?`)) return;
-    try {
-      await deleteDoc(doc(db, col, id));
-      showToast('ลบข้อมูลสำเร็จ', 'success');
-      window.showSection(currentSection);
-    } catch (err) {
-      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-    }
-  };
-
-  // Reward Modal Functions
-  window.openRewardModal = () => {
-    editingRewardId = null;
-    document.getElementById('rewardModalTitle').textContent = '➕ เพิ่มของรางวัล';
-    ['rTitle','rPoints','rImage','rDesc'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('rewardModal').classList.remove('hidden');
-  };
-
-  window.closeRewardModal = () => {
-    document.getElementById('rewardModal').classList.add('hidden');
-  };
-
-  // ── FIX: ใช้ getDoc(doc(db,'rewards',id)) ดึงเอกสารเดียวตรงๆ ──
-  // เดิมโหลดทั้ง collection แล้วค่อย find() เปลือง read quota และช้าลงเรื่อยๆ
-  // เมื่อจำนวนรางวัลเพิ่มขึ้น
-  window.editReward = async (id) => {
-    editingRewardId = id;
-    try {
-      const snap = await getDoc(doc(db, 'rewards', id));
-      if (!snap.exists()) return showToast('ไม่พบรางวัล', 'error');
-      const reward = snap.data();
-
-      document.getElementById('rewardModalTitle').textContent = '✏️ แก้ไขรางวัล';
-      document.getElementById('rTitle').value = reward.title ?? '';
-      document.getElementById('rPoints').value = reward.points ?? '';
-      document.getElementById('rImage').value = reward.image ?? '';
-      document.getElementById('rDesc').value = reward.description ?? '';
-      document.getElementById('rewardModal').classList.remove('hidden');
-    } catch (err) {
-      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-    }
-  };
-
-  window.saveReward = async () => {
-    const title = document.getElementById('rTitle').value.trim();
-    const pts   = parseInt(document.getElementById('rPoints').value)||0;
-    const image = document.getElementById('rImage').value.trim();
-    const desc  = document.getElementById('rDesc').value.trim();
-    if (!title || !pts) return showToast('กรุณากรอก ชื่อ และ แต้ม', 'error');
-
-    try {
-      const data = { title, points: pts, image, description: desc };
-
-      if (editingRewardId) {
-        await updateDoc(doc(db, 'rewards', editingRewardId), data);
-        showToast('อัปเดตรางวัลสำเร็จ', 'success');
-      } else {
-        await addDoc(collection(db,'rewards'), { ...data, createdAt: new Date().toISOString() });
-        showToast('เพิ่มรางวัลสำเร็จ', 'success');
-      }
-      closeRewardModal();
-      window.showSection('rewards');
-    } catch (err) {
-      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-    }
-  };
-
-  // Health Recording Management
-  const loadHealthRecording = async () => {
-    const el = document.getElementById('sectionContent');
-    el.innerHTML = '<p class="text-gray-400 text-sm animate-pulse">กำลังโหลด…</p>';
-
-    try {
-      // Get all users
-      const userSnap = await getDocs(collection(db, 'users'));
-      const users = userSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      let html = `
-        <div class="space-y-4">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 class="font-black text-blue-900 mb-2">📋 Health Recording Management</h3>
-            <p class="text-sm text-blue-700">Manage user access to health recording features</p>
-          </div>
-
-          <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h4 class="font-bold text-gray-800 mb-3">Users & Recording Access Rights</h4>
-            <div class="space-y-2">
-              <div class="grid grid-cols-1 md:grid-cols-[1.1fr_1.1fr_1fr_2fr_auto] gap-3 items-center bg-gray-50 p-3 rounded-lg font-bold text-sm text-gray-600">
-                <span>User</span>
-                <span>Email</span>
-                <span>Recording Enabled</span>
-                <span>Data Access</span>
-                <span>Action</span>
-              </div>
-      `;
-
-      if (users.length === 0) {
-        html += '<p class="text-gray-400 py-4">ไม่มีผู้ใช้</p>';
-      } else {
-        users.forEach(user => {
-          const recordingEnabled = user.healthRecordingEnabled !== false;
-          const access = user.bodyStatsAccess || {};
-          html += `
-            <div class="grid grid-cols-1 md:grid-cols-[1.1fr_1.1fr_1fr_2fr_auto] gap-3 items-center bg-white border border-gray-100 p-3 rounded-lg">
-              <span class="font-bold text-gray-800">${escapeHtml(user.displayName || 'Unknown')}</span>
-              <span class="text-sm text-gray-600">${escapeHtml(user.email || user.lineUid || '–')}</span>
-              <span class="flex items-center gap-2">
-                <input type="checkbox" id="rec_${user.id}" ${recordingEnabled ? 'checked' : ''}
-                  onchange="toggleHealthRecording('${user.id}', this.checked)"
-                  class="w-4 h-4 rounded cursor-pointer">
-                <span class="text-xs ${recordingEnabled ? 'text-green-600 font-bold' : 'text-gray-400'}">${recordingEnabled ? '✓ Enabled' : '✗ Disabled'}</span>
-              </span>
-              <div class="grid grid-cols-2 gap-2 text-xs">
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input type="checkbox" ${access.height !== false ? 'checked' : ''}
-                    onchange="toggleBodyStatsAccess('${user.id}', 'height', this.checked)">
-                  <span>Height</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input type="checkbox" ${access.weight !== false ? 'checked' : ''}
-                    onchange="toggleBodyStatsAccess('${user.id}', 'weight', this.checked)">
-                  <span>Weight</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input type="checkbox" ${access.waist_hip ? 'checked' : ''}
-                    onchange="toggleBodyStatsAccess('${user.id}', 'waist_hip', this.checked)">
-                  <span>Waist/Hip</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input type="checkbox" ${access.bloodtest ? 'checked' : ''}
-                    onchange="toggleBodyStatsAccess('${user.id}', 'bloodtest', this.checked)">
-                  <span>Blood</span>
-                </label>
-              </div>
-              <button onclick="viewUserHealthStats('${user.id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">📊 Stats</button>
-            </div>
-          `;
-        });
-      }
-
-      html += `
-            </div>
-          </div>
-
-          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <h4 class="font-bold text-amber-900 mb-2">📝 Recording Features</h4>
-            <ul class="text-sm text-amber-800 space-y-1">
-              <li>✓ Quick daily tracking (weight, blood sugar, pressure)</li>
-              <li>✓ Detailed body statistics (height, waist, hip, etc.)</li>
-              <li>✓ Blood test results</li>
-              <li>✓ Access control per metric</li>
-            </ul>
-          </div>
-        </div>
-      `;
-
-      el.innerHTML = html;
-    } catch (err) {
-      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
-    }
-  };
-
-  // Toggle health recording access for user
-  window.toggleHealthRecording = async (userId, enabled) => {
-    try {
-      await updateDoc(doc(db, 'users', userId), { healthRecordingEnabled: enabled });
-      showToast(enabled ? '✓ เปิดการบันทึกสุขภาพ' : '✗ ปิดการบันทึกสุขภาพ', 'success');
-      loadHealthRecording(); // Reload
-    } catch (err) {
-      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
-    }
-  };
-
-  window.toggleBodyStatsAccess = async (userId, key, enabled) => {
-    try {
-      const userRef = doc(db, 'users', userId);
-      const snap = await getDoc(userRef);
-      const current = snap.data()?.bodyStatsAccess || {};
-      await updateDoc(userRef, {
-        bodyStatsAccess: {
-          ...current,
-          [key]: enabled,
-          updatedAt: new Date().toISOString()
-        }
-      });
-      showToast('Updated health data permission', 'success');
-      loadHealthRecording();
-    } catch (err) {
-      showToast('Update failed: ' + err.message, 'error');
-    }
-  };
-
-  // View user's health statistics
-  window.viewUserHealthStats = async (userId) => {
-    const el = document.getElementById('sectionContent');
-    el.innerHTML = '<p class="text-gray-400 text-sm animate-pulse">กำลังโหลด…</p>';
-
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const user = userDoc.data() || {};
-
-      // Get body stats
-      const bodyStatsSnap = await getDocs(query(
-        collection(db, 'bodyStats'),
-        where('uid', '==', userId)
-      ));
-      const bodyStats = bodyStatsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      // Get health logs
-      const healthLogsSnap = await getDocs(query(
-        collection(db, 'healthLogs'),
-        where('uid', '==', userId)
-      ));
-      const healthLogs = healthLogsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      let html = `
-        <div class="space-y-4">
-          <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-black text-gray-800">${escapeHtml(user.displayName || 'Unknown User')}</h3>
-                <p class="text-xs text-gray-500">${escapeHtml(user.email || '–')}</p>
-              </div>
-              <button onclick="loadHealthRecording()" class="bg-gray-500 hover:bg-gray-600 text-white text-xs font-bold px-3 py-1.5 rounded">← Back</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p class="text-gray-600 text-xs font-bold">📊 Body Statistics Records</p>
-              <p class="text-3xl font-black text-green-600 mt-2">${bodyStats.length}</p>
-              <p class="text-xs text-gray-500 mt-1">Detailed measurements</p>
-            </div>
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p class="text-gray-600 text-xs font-bold">📋 Health Log Entries</p>
-              <p class="text-3xl font-black text-blue-600 mt-2">${healthLogs.length}</p>
-              <p class="text-xs text-gray-500 mt-1">Daily tracking</p>
-            </div>
-          </div>
-
-          <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h4 class="font-bold text-gray-800 mb-3">Latest Body Statistics</h4>
-            ${bodyStats.length === 0
-              ? '<p class="text-gray-400 text-sm">ไม่มีข้อมูล</p>'
-              : `<table><thead><tr><th>Date</th><th>Height</th><th>Weight</th><th>Waist</th><th>Hip</th></tr></thead><tbody>
-                  ${bodyStats.slice(-5).reverse().map(s => `
-                    <tr>
-                      <td>${escapeHtml(new Date(s.createdAt).toLocaleString('th-TH'))}</td>
-                      <td>${escapeHtml(s.height || '–')} cm</td>
-                      <td>${escapeHtml(s.weight || '–')} kg</td>
-                      <td>${escapeHtml(s.waist || '–')} cm</td>
-                      <td>${escapeHtml(s.hip || '–')} cm</td>
-                    </tr>
-                  `).join('')}
-                </tbody></table>`
-            }
-          </div>
-        </div>
-      `;
-
-      el.innerHTML = html;
-    } catch (err) {
-      el.innerHTML = `<p class="text-red-500 font-bold p-4">❌ เกิดข้อผิดพลาด: ${escapeHtml(err.message)}</p>`;
-    }
-  };
-
-  // Mission Modal Functions
+  // ── Mission Modal ──
   window.openMissionModal = () => {
     editingMissionId = null;
     document.getElementById('missionModalTitle').textContent = '➕ เพิ่มภารกิจ';
-    ['mTitle','mPoints','mIcon','mDesc'].forEach(id=>document.getElementById(id).value='');
+    ['mTitle', 'mPoints', 'mIcon', 'mDesc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mType').value = 'food';
+    document.getElementById('mTarget').value = '1';
+    document.getElementById('mActive').value = 'true';
     document.getElementById('missionModal').classList.remove('hidden');
   };
 
@@ -599,19 +749,20 @@
     document.getElementById('missionModal').classList.add('hidden');
   };
 
-  // ── FIX: ใช้ getDoc(doc(db,'missions',id)) ดึงเอกสารเดียวตรงๆ แทนการโหลดทั้ง collection ──
   window.editMission = async (id) => {
     editingMissionId = id;
     try {
       const snap = await getDoc(doc(db, 'missions', id));
       if (!snap.exists()) return showToast('ไม่พบภารกิจ', 'error');
-      const mission = snap.data();
-
+      const m = snap.data();
       document.getElementById('missionModalTitle').textContent = '✏️ แก้ไขภารกิจ';
-      document.getElementById('mTitle').value = mission.title ?? '';
-      document.getElementById('mPoints').value = mission.points ?? '';
-      document.getElementById('mIcon').value = mission.icon ?? '';
-      document.getElementById('mDesc').value = mission.desc ?? '';
+      document.getElementById('mTitle').value = m.title ?? '';
+      document.getElementById('mPoints').value = m.points ?? '';
+      document.getElementById('mIcon').value = m.icon ?? '';
+      document.getElementById('mDesc').value = m.desc ?? '';
+      document.getElementById('mType').value = m.type || 'food';
+      document.getElementById('mTarget').value = m.target || 1;
+      document.getElementById('mActive').value = m.active !== false ? 'true' : 'false';
       document.getElementById('missionModal').classList.remove('hidden');
     } catch (err) {
       showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
@@ -619,21 +770,23 @@
   };
 
   window.saveMission = async () => {
-    const title  = document.getElementById('mTitle').value.trim();
-    const pts    = parseInt(document.getElementById('mPoints').value)||0;
-    const icon   = document.getElementById('mIcon').value.trim();
-    const desc   = document.getElementById('mDesc').value.trim();
+    const title = document.getElementById('mTitle').value.trim();
+    const pts = parseInt(document.getElementById('mPoints').value) || 0;
+    const icon = document.getElementById('mIcon').value.trim();
+    const desc = document.getElementById('mDesc').value.trim();
+    const type = document.getElementById('mType').value;
+    const target = parseInt(document.getElementById('mTarget').value) || 1;
+    const active = document.getElementById('mActive').value === 'true';
     if (!title || !pts) return showToast('กรุณากรอก ชื่อ และ แต้ม', 'error');
 
     try {
-      const data = { title, points: pts, icon, desc };
-
+      const data = { title, points: pts, icon, desc, type, target, active };
       if (editingMissionId) {
         await updateDoc(doc(db, 'missions', editingMissionId), data);
-        showToast('อัปเดตภารกิจสำเร็จ', 'success');
+        showToast('อัปเดตภารกิจสำเร็จ');
       } else {
-        await addDoc(collection(db,'missions'), { ...data, createdAt: new Date().toISOString() });
-        showToast('เพิ่มภารกิจสำเร็จ', 'success');
+        await addDoc(collection(db, 'missions'), { ...data, createdAt: new Date().toISOString() });
+        showToast('เพิ่มภารกิจสำเร็จ');
       }
       closeMissionModal();
       window.showSection('missions');
@@ -642,7 +795,531 @@
     }
   };
 
-  // Auto-load dashboard on page load
+  // ============================================================
+  // 🎁 REWARDS
+  // ============================================================
+  const renderRewards = (rewards) => {
+    const el = document.getElementById('sectionContent');
+    let html = `<div class="flex justify-between items-center mb-4">
+      <p class="text-sm font-bold text-gray-600">${rewards.length} รางวัล</p>
+      <button onclick="openRewardModal()" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg">➕ เพิ่ม</button>
+    </div><div class="space-y-2">`;
+
+    rewards.forEach(r => {
+      const active = r.active !== false;
+      const stock = r.stock !== undefined ? r.stock : null;
+      html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start fade-in">
+        <div>
+          <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(r.image || '🎁')}</span> ${escapeHtml(r.title)}</p>
+          <p class="text-xs text-gray-600 mt-1">${escapeHtml(r.description || '')}</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span class="text-sm font-bold text-pink-600">💰 ${escapeHtml(r.points)} แต้ม</span>
+            ${stock !== null ? `<span class="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">สต็อก: ${stock}</span>` : ''}
+            <span class="text-xs font-bold ${active ? 'text-green-600 bg-green-100' : 'text-red-500 bg-red-100'} px-2 py-0.5 rounded-full">${active ? '✅ เปิด' : '❌ ปิด'}</span>
+          </div>
+        </div>
+        <div class="flex gap-2 flex-shrink-0">
+          <button onclick="editReward('${r._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️</button>
+          <button onclick="deleteRow('${r._id}','rewards')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded">🗑</button>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  };
+
+  // ── Reward Modal ──
+  window.openRewardModal = () => {
+    editingRewardId = null;
+    document.getElementById('rewardModalTitle').textContent = '➕ เพิ่มของรางวัล';
+    ['rTitle', 'rPoints', 'rImage', 'rDesc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('rStock').value = '0';
+    document.getElementById('rActive').value = 'true';
+    document.getElementById('rewardModal').classList.remove('hidden');
+  };
+
+  window.closeRewardModal = () => {
+    document.getElementById('rewardModal').classList.add('hidden');
+  };
+
+  window.editReward = async (id) => {
+    editingRewardId = id;
+    try {
+      const snap = await getDoc(doc(db, 'rewards', id));
+      if (!snap.exists()) return showToast('ไม่พบรางวัล', 'error');
+      const r = snap.data();
+      document.getElementById('rewardModalTitle').textContent = '✏️ แก้ไขรางวัล';
+      document.getElementById('rTitle').value = r.title ?? '';
+      document.getElementById('rPoints').value = r.points ?? '';
+      document.getElementById('rImage').value = r.image ?? '';
+      document.getElementById('rDesc').value = r.description ?? '';
+      document.getElementById('rStock').value = r.stock ?? 0;
+      document.getElementById('rActive').value = r.active !== false ? 'true' : 'false';
+      document.getElementById('rewardModal').classList.remove('hidden');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  window.saveReward = async () => {
+    const title = document.getElementById('rTitle').value.trim();
+    const pts = parseInt(document.getElementById('rPoints').value) || 0;
+    const image = document.getElementById('rImage').value.trim();
+    const desc = document.getElementById('rDesc').value.trim();
+    const stock = parseInt(document.getElementById('rStock').value) || 0;
+    const active = document.getElementById('rActive').value === 'true';
+    if (!title || !pts) return showToast('กรุณากรอก ชื่อ และ แต้ม', 'error');
+
+    try {
+      const data = { title, points: pts, image, description: desc, stock, active };
+      if (editingRewardId) {
+        await updateDoc(doc(db, 'rewards', editingRewardId), data);
+        showToast('อัปเดตรางวัลสำเร็จ');
+      } else {
+        await addDoc(collection(db, 'rewards'), { ...data, createdAt: new Date().toISOString() });
+        showToast('เพิ่มรางวัลสำเร็จ');
+      }
+      closeRewardModal();
+      window.showSection('rewards');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  // ============================================================
+  // 🍱 FOOD LOGS
+  // ============================================================
+  const renderFoodLogs = (logs) => {
+    const el = document.getElementById('sectionContent');
+    if (!logs.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูลอาหาร</p>';
+      return;
+    }
+    const totalCal = logs.reduce((s, e) => s + (e.calories || 0), 0);
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${logs.length} รายการ | รวม ${totalCal.toLocaleString()} kcal</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>วันที่</th><th>ผู้ใช้</th><th>มื้อ</th><th>ชื่อ</th><th>🔥 kcal</th><th>🥩 โปรตีน</th><th>🍚 Carb</th><th>🧈 Fat</th><th>🥬 Fiber</th><th>🧂 Na</th><th>📝 หมายเหตุ</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    logs.forEach((e, i) => {
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtShortDate(e.date || e.createdAt)}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(e.uid)}">${escapeHtml((e.uid || '').slice(0, 10))}…</td>
+        <td>${escapeHtml(e.meal || '–')}</td>
+        <td class="font-bold">${escapeHtml(e.name || '–')}</td>
+        <td class="font-bold text-orange-600">${e.calories || 0}</td>
+        <td>${e.protein || 0}g</td>
+        <td>${e.carbs || 0}g</td>
+        <td>${e.fat || 0}g</td>
+        <td>${e.fiber || 0}g</td>
+        <td>${e.sodium || 0}mg</td>
+        <td class="max-w-xs truncate">${escapeHtml(e.note || '')}</td>
+        <td><button onclick="deleteRow('${e._id}','foodLogs')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ============================================================
+  // 🏃 EXERCISE LOGS
+  // ============================================================
+  const renderExerciseLogs = (logs) => {
+    const el = document.getElementById('sectionContent');
+    if (!logs.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูลการออกกำลังกาย</p>';
+      return;
+    }
+    const totalCal = logs.reduce((s, e) => s + (e.calories || 0), 0);
+    const totalMin = logs.reduce((s, e) => s + (e.duration || 0), 0);
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${logs.length} รายการ | รวม ${totalCal.toLocaleString()} kcal | ${totalMin} นาที</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>วันที่</th><th>ผู้ใช้</th><th>กิจกรรม</th><th>🔥 kcal</th><th>⏱️ นาที</th><th>📊 MET</th><th>⚖️ น้ำหนัก</th><th>📂 หมวด</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    logs.forEach((e, i) => {
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtShortDate(e.date || e.createdAt)}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(e.uid)}">${escapeHtml((e.uid || '').slice(0, 10))}…</td>
+        <td class="font-bold">${escapeHtml(e.subActivityNameTh || e.subActivityNameEn || '–')}</td>
+        <td class="font-bold text-orange-600">${e.calories || 0}</td>
+        <td>${e.duration || 0}</td>
+        <td>${e.met || '–'}</td>
+        <td>${e.weight || '–'} kg</td>
+        <td>${escapeHtml(e.categoryNameTh || '–')}</td>
+        <td><button onclick="deleteRow('${e._id}','exerciseLogs')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ============================================================
+  // 📋 HEALTH LOGS
+  // ============================================================
+  const renderHealthLogs = (logs) => {
+    const el = document.getElementById('sectionContent');
+    if (!logs.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูลสุขภาพ</p>';
+      return;
+    }
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${logs.length} รายการ</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>วันที่</th><th>ผู้ใช้</th><th>ประเภท</th><th>ค่า</th><th>📝 การแปลผล</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    logs.forEach((e, i) => {
+      let value = '–';
+      if (e.type === 'weight') value = `⚖️ ${e.weight || '–'} kg${e.height ? ` / ${e.height} cm` : ''}`;
+      else if (e.type === 'sugar') value = `🩸 ${e.sugar || '–'} mg/dL (${e.context || ''})`;
+      else if (e.type === 'pressure') value = `💓 ${e.sys || '–'}/${e.dia || '–'} mmHg · ${e.pulse || '–'} bpm`;
+      else value = JSON.stringify(e);
+
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtDate(e.createdAt)}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(e.uid)}">${escapeHtml((e.uid || '').slice(0, 10))}…</td>
+        <td><span class="font-bold">${escapeHtml(e.type || '–')}</span></td>
+        <td class="font-bold">${escapeHtml(value)}</td>
+        <td class="max-w-xs text-xs">${escapeHtml(e.interpretation || '')}</td>
+        <td><button onclick="deleteRow('${e._id}','healthLogs')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ============================================================
+  // 📊 BODY STATS
+  // ============================================================
+  const renderBodyStats = (stats) => {
+    const el = document.getElementById('sectionContent');
+    if (!stats.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูลสถิติร่างกาย</p>';
+      return;
+    }
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${stats.length} รายการ</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>วันที่</th><th>ผู้ใช้</th><th>📏 สูง</th><th>⚖️ หนัก</th><th>🔗 เอว</th><th>🦵 สะโพก</th><th>🦵 กล้ามเนื้อ</th><th>🩸 ไขมัน</th><th>🍬 น้ำตาล</th><th>💓 ความดัน</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    stats.forEach((s, i) => {
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtDate(s.createdAt)}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(s.uid)}">${escapeHtml((s.uid || '').slice(0, 10))}…</td>
+        <td>${s.height || '–'} cm</td>
+        <td class="font-bold">${s.weight || '–'} kg</td>
+        <td>${s.waist || '–'} cm</td>
+        <td>${s.hip || '–'} cm</td>
+        <td>${s.muscle || '–'}%</td>
+        <td>${s.bloodfat || '–'} mg/dL</td>
+        <td>${s.bloodsugar || '–'} mg/dL</td>
+        <td>${escapeHtml(s.bloodpressure || '–')}</td>
+        <td><button onclick="deleteRow('${s._id}','bodyStats')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ============================================================
+  // ⏰ REMINDERS
+  // ============================================================
+  const renderReminders = (reminders) => {
+    const el = document.getElementById('sectionContent');
+    if (!reminders.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูลแจ้งเตือน</p>';
+      return;
+    }
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${reminders.length} รายการ</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>ผู้ใช้</th><th>ประเภท</th><th>ชื่อ</th><th>📅 กำหนด</th><th>🔁 ซ้ำ</th><th>📝 หมายเหตุ</th><th>สถานะ</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    reminders.forEach((r, i) => {
+      const repeatText = r.repeatDays?.length ? (r.repeatDays.length === 7 ? 'ทุกวัน' : `${r.repeatDays.length} วัน`) : 'ไม่ซ้ำ';
+      const statusClass = r.status === 'done' ? 'text-green-600' : r.status === 'active' ? 'text-blue-600' : 'text-gray-400';
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(r.uid)}">${escapeHtml((r.uid || '').slice(0, 10))}…</td>
+        <td>${r.type === 'appointment' ? '🩺 หมอนัด' : '💊 กินยา'}</td>
+        <td class="font-bold">${escapeHtml(r.title || '–')}</td>
+        <td>${fmtDate(r.scheduledAt)}</td>
+        <td class="text-xs">${repeatText}</td>
+        <td class="max-w-xs truncate text-xs">${escapeHtml(r.note || '')}</td>
+        <td class="font-bold ${statusClass}">${r.status || 'active'}</td>
+        <td><button onclick="deleteRow('${r._id}','reminders')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ============================================================
+  // 🧾 REDEMPTIONS
+  // ============================================================
+  const renderRedemptions = (redemptions) => {
+    const el = document.getElementById('sectionContent');
+    if (!redemptions.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีคำขอแลกของ</p>';
+      return;
+    }
+    const pending = redemptions.filter(r => r.status === 'pending').length;
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${redemptions.length} รายการ | ⏳ รออนุมัติ ${pending} รายการ</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>วันที่</th><th>ผู้ใช้</th><th>รางวัล</th><th>💰 แต้ม</th><th>📦 สถานะ</th><th>👤 ผู้รับ</th><th>📱 เบอร์</th><th>📧 อีเมล</th><th>📍 ที่อยู่</th><th>📝 หมายเหตุ</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    redemptions.forEach((r, i) => {
+      const addr = r.shippingAddress || {};
+      const statusColors = {
+        pending: 'status-pending',
+        confirmed: 'status-confirmed',
+        delivered: 'status-delivered',
+        cancelled: 'status-cancelled'
+      };
+      const statusLabels = {
+        pending: '⏳ รอยืนยัน',
+        confirmed: '✅ ยืนยันแล้ว',
+        delivered: '📬 ส่งแล้ว',
+        cancelled: '❌ ยกเลิก'
+      };
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtDate(r.redeemedAt || r.createdAt)}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(r.uid)}">${escapeHtml((r.uid || '').slice(0, 10))}…</td>
+        <td class="font-bold">${escapeHtml(r.rewardTitle || r.title || '–')}</td>
+        <td class="font-bold text-pink-600">${r.pointsCost || r.cost || 0}</td>
+        <td><span class="text-xs font-bold px-2 py-1 rounded-full ${statusColors[r.status] || 'bg-gray-100'}">${statusLabels[r.status] || r.status}</span></td>
+        <td>${escapeHtml(addr.recipientName || '–')}</td>
+        <td>${escapeHtml(addr.recipientPhone || '–')}</td>
+        <td>${escapeHtml(addr.recipientEmail || '–')}</td>
+        <td class="max-w-xs truncate text-xs">${escapeHtml(addr.address || '–')}</td>
+        <td class="text-xs">${escapeHtml(r.adminNote || '')}</td>
+        <td>
+          <button onclick="openRedemptionModal('${r._id}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold">📦</button>
+          <button onclick="deleteRow('${r._id}','redemptions')" class="text-red-400 hover:text-red-600 text-xs font-bold ml-1">🗑</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ── Redemption Modal ──
+  window.openRedemptionModal = async (id) => {
+    editingRedemptionId = id;
+    try {
+      const snap = await getDoc(doc(db, 'redemptions', id));
+      if (!snap.exists()) return showToast('ไม่พบคำขอ', 'error');
+      const r = snap.data();
+      const addr = r.shippingAddress || {};
+      document.getElementById('redemptionDetail').innerHTML = `
+        <div class="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+          <p><span class="font-bold">รางวัล:</span> ${escapeHtml(r.rewardTitle || r.title || '–')}</p>
+          <p><span class="font-bold">แต้ม:</span> ${r.pointsCost || r.cost || 0}</p>
+          <p><span class="font-bold">วันที่:</span> ${fmtDate(r.redeemedAt || r.createdAt)}</p>
+          <p><span class="font-bold">ผู้รับ:</span> ${escapeHtml(addr.recipientName || '–')}</p>
+          <p><span class="font-bold">เบอร์:</span> ${escapeHtml(addr.recipientPhone || '–')}</p>
+          <p><span class="font-bold">อีเมล:</span> ${escapeHtml(addr.recipientEmail || '–')}</p>
+          <p><span class="font-bold">ที่อยู่:</span> ${escapeHtml(addr.address || '–')}</p>
+        </div>
+      `;
+      document.getElementById('rm_status').value = r.status || 'pending';
+      document.getElementById('rm_note').value = r.adminNote || '';
+      document.getElementById('redemptionModal').classList.remove('hidden');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  window.closeRedemptionModal = () => {
+    document.getElementById('redemptionModal').classList.add('hidden');
+    editingRedemptionId = null;
+  };
+
+  window.saveRedemptionStatus = async () => {
+    if (!editingRedemptionId) return;
+    const status = document.getElementById('rm_status').value;
+    const note = document.getElementById('rm_note').value.trim();
+    try {
+      await updateDoc(doc(db, 'redemptions', editingRedemptionId), {
+        status,
+        adminNote: note,
+        updatedAt: new Date().toISOString()
+      });
+      showToast('อัปเดตสถานะสำเร็จ');
+      closeRedemptionModal();
+      window.showSection('redemptions');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  // ============================================================
+  // 💰 TRANSACTIONS
+  // ============================================================
+  const renderTransactions = (txns) => {
+    const el = document.getElementById('sectionContent');
+    if (!txns.length) {
+      el.innerHTML = '<p class="text-gray-400 text-sm p-4">ไม่มีรายการธุรกรรม</p>';
+      return;
+    }
+    const totalEarn = txns.filter(t => t.type === 'earn').reduce((s, t) => s + (t.amount || 0), 0);
+    const totalSpend = txns.filter(t => t.type === 'spend').reduce((s, t) => s + (t.amount || 0), 0);
+    let html = `<div class="flex justify-between items-center mb-3">
+      <p class="text-sm font-bold text-gray-600">${txns.length} รายการ | ⬆️ +${totalEarn.toLocaleString()} ⬇️ -${totalSpend.toLocaleString()}</p>
+    </div><div class="overflow-x-auto"><table><thead><tr>
+      <th>#</th><th>วันที่</th><th>ผู้ใช้</th><th>ประเภท</th><th>💰 จำนวน</th><th>📝 เหตุผล</th><th>💳 คงเหลือ</th><th>Action</th>
+    </tr></thead><tbody>`;
+
+    txns.forEach((t, i) => {
+      const isEarn = t.type === 'earn';
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtDate(t.timestamp || t.createdAt)}</td>
+        <td class="font-mono text-xs" title="${escapeHtml(t.uid)}">${escapeHtml((t.uid || '').slice(0, 10))}…</td>
+        <td><span class="font-bold ${isEarn ? 'text-green-600' : 'text-red-600'}">${isEarn ? '⬆️ ได้รับ' : '⬇️ ใช้'}</span></td>
+        <td class="font-bold ${isEarn ? 'text-green-600' : 'text-red-600'}">${isEarn ? '+' : '-'}${(t.amount || 0).toLocaleString()}</td>
+        <td class="max-w-xs truncate text-xs">${escapeHtml(t.reason || t.missionTitle || t.rewardTitle || '–')}</td>
+        <td>${t.balance !== undefined ? t.balance.toLocaleString() : '–'}</td>
+        <td><button onclick="deleteRow('${t._id}','transactions')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  };
+
+  // ============================================================
+  // ⚙️ SETTINGS
+  // ============================================================
+  const loadSettings = async () => {
+    const el = document.getElementById('sectionContent');
+    el.innerHTML = `
+      <div class="space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="font-black text-blue-900 mb-2">⚙️ ตั้งค่าระบบ</h3>
+          <p class="text-sm text-blue-700">จัดการค่าต่างๆ ของระบบ VitalVibe</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Default Goals -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 class="font-bold text-gray-800 mb-3">🎯 ค่าเริ่มต้นผู้ใช้ใหม่</h4>
+            <div class="space-y-3">
+              <div>
+                <label class="text-xs font-bold text-gray-500">เป้าหมายแคลอรี่เริ่มต้น (kcal)</label>
+                <input id="s_defaultCal" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" value="2000">
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-500">เป้าหมายออกกำลังกายเริ่มต้น (kcal)</label>
+                <input id="s_defaultEx" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" value="300">
+              </div>
+              <button onclick="saveDefaultGoals()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-lg text-sm">💾 บันทึกค่าเริ่มต้น</button>
+            </div>
+          </div>
+
+          <!-- Admin UIDs -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 class="font-bold text-gray-800 mb-3">🔐 Admin UIDs</h4>
+            <p class="text-xs text-gray-400 mb-2">UID ที่มีสิทธิ์เข้าถึง Admin Panel (คั่นด้วยคอมม่า)</p>
+            <textarea id="s_adminUidsList" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">${ADMIN_UIDS.join(',')}</textarea>
+            <p class="text-xs text-gray-400 mt-1">⚠️ ต้องอัปเดตใน lib/firebase.js ด้วย</p>
+          </div>
+
+          <!-- System Stats -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 class="font-bold text-gray-800 mb-3">📊 สถิติระบบ</h4>
+            <div id="systemStatsContent">
+              <p class="text-gray-400 text-sm">กำลังโหลด...</p>
+            </div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 class="font-bold text-red-800 mb-3">⚠️ Danger Zone</h4>
+            <div class="space-y-2">
+              <button onclick="clearAllData()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm">🗑 ลบข้อมูลทั้งหมด</button>
+              <p class="text-xs text-red-500">⚠️ การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Load system stats
+    try {
+      const [usersSnap, foodSnap, exSnap, healthSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'foodLogs')),
+        getDocs(collection(db, 'exerciseLogs')),
+        getDocs(collection(db, 'healthLogs'))
+      ]);
+      document.getElementById('systemStatsContent').innerHTML = `
+        <div class="space-y-2 text-sm">
+          <p>👥 ผู้ใช้ทั้งหมด: <strong>${usersSnap.size}</strong> คน</p>
+          <p>🍱 บันทึกอาหาร: <strong>${foodSnap.size}</strong> รายการ</p>
+          <p>🏃 บันทึกออกกำลังกาย: <strong>${exSnap.size}</strong> รายการ</p>
+          <p>📋 บันทึกสุขภาพ: <strong>${healthSnap.size}</strong> รายการ</p>
+          <p class="text-xs text-gray-400 mt-2">อัปเดตล่าสุด: ${new Date().toLocaleString('th-TH')}</p>
+        </div>
+      `;
+    } catch (err) {
+      document.getElementById('systemStatsContent').innerHTML = `<p class="text-red-500 text-sm">โหลดไม่สำเร็จ: ${escapeHtml(err.message)}</p>`;
+    }
+  };
+
+  window.saveDefaultGoals = async () => {
+    const cal = parseInt(document.getElementById('s_defaultCal').value) || 2000;
+    const ex = parseInt(document.getElementById('s_defaultEx').value) || 300;
+    try {
+      await setDoc(doc(db, 'systemSettings', 'defaults'), {
+        defaultCalorieGoal: cal,
+        defaultExerciseGoal: ex,
+        updatedAt: new Date().toISOString(),
+        updatedBy: session?.uid || 'unknown'
+      }, { merge: true });
+      showToast('บันทึกค่าเริ่มต้นสำเร็จ');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  window.clearAllData = async () => {
+    if (!confirm('⚠️ คุณแน่ใจที่จะลบข้อมูลทั้งหมดในระบบ? การกระทำนี้ไม่สามารถย้อนกลับได้!')) return;
+    if (!confirm('⚠️ ยืนยันอีกครั้ง: ลบข้อมูลผู้ใช้ อาหาร ออกกำลังกาย สุขภาพ ทั้งหมด?')) return;
+    const pw = prompt('กรุณาพิมพ์ "DELETE" เพื่อยืนยัน');
+    if (pw !== 'DELETE') return showToast('ยกเลิกการลบ', 'error');
+
+    const collections = ['foodLogs', 'exerciseLogs', 'healthLogs', 'bodyStats', 'reminders', 'redemptions', 'transactions', 'missionCompletions', 'dailyCalorieSummaries', 'dailyExerciseSummaries', 'calorieNotifications'];
+    let deleted = 0;
+    for (const col of collections) {
+      try {
+        const snap = await getDocs(collection(db, col));
+        const batch = [];
+        snap.docs.forEach(d => batch.push(deleteDoc(doc(db, col, d.id))));
+        await Promise.all(batch);
+        deleted += snap.size;
+      } catch (err) {
+        console.warn(`⚠️ Failed to clear ${col}:`, err.message);
+      }
+    }
+    showToast(`🗑 ลบข้อมูล ${deleted} รายการสำเร็จ`);
+    loadSettings();
+  };
+
+  // ============================================================
+  // 🚀 INIT
+  // ============================================================
   if (isAdmin) {
     loadDashboard();
   }
