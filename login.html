@@ -66,6 +66,7 @@
           <div><label class="text-2xs sm:text-xs text-white/45 font-bold">ชื่อ - นามสกุล <span class="text-emerald-400">*</span></label><input id="regName" type="text" placeholder="เช่น สมชาย ใจดี" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
           <div><label class="text-2xs sm:text-xs text-white/45 font-bold">เบอร์โทรศัพท์ <span class="text-emerald-400">*</span></label><input id="regPhone" type="tel" placeholder="0812345678" maxlength="10" inputmode="numeric" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
           <div><label class="text-2xs sm:text-xs text-white/45 font-bold">วันเดือนปีเกิด <span class="text-emerald-400">*</span></label><input id="regBirthDate" type="date" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"><p id="birthDateHint" class="text-2xs sm:text-[10px] text-white/30 mt-1">เลือกวันเกิด (จะแสดงเป็น พ.ศ. อัตโนมัติ)</p></div>
+          <div><label class="text-2xs sm:text-xs text-white/45 font-bold">เพศ <span class="text-emerald-400">*</span></label><div class="mt-1 flex gap-3"><button id="genderMale" onclick="selectGender('male')" class="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white font-black text-sm transition-colors bg-white/15 border-emerald-400">👨 ชาย</button><button id="genderFemale" onclick="selectGender('female')" class="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white/50 font-black text-sm transition-colors">👩 หญิง</button></div></div>
           <div class="grid gap-2.5 sm:gap-3" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
             <div><label class="text-2xs sm:text-xs text-white/45 font-bold">น้ำหนักปัจจุบัน (kg) <span class="text-emerald-400">*</span></label><input id="regWeight" type="number" placeholder="65" step="0.1" min="20" max="300" inputmode="decimal" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
             <div><label class="text-2xs sm:text-xs text-white/45 font-bold">ส่วนสูงปัจจุบัน (cm) <span class="text-emerald-400">*</span></label><input id="regHeight" type="number" placeholder="170" step="0.1" min="50" max="250" inputmode="decimal" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
@@ -217,6 +218,21 @@
         hint.classList.remove('text-emerald-400/70');
       }
     });
+
+    let selectedGender = null;
+
+    window.selectGender = (gender) => {
+      selectedGender = gender;
+      const maleBtn = document.getElementById('genderMale');
+      const femaleBtn = document.getElementById('genderFemale');
+      if (gender === 'male') {
+        maleBtn.className = 'flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-emerald-400 text-white font-black text-sm transition-colors bg-white/15';
+        femaleBtn.className = 'flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white/50 font-black text-sm transition-colors';
+      } else {
+        femaleBtn.className = 'flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-emerald-400 text-white font-black text-sm transition-colors bg-white/15';
+        maleBtn.className = 'flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white/50 font-black text-sm transition-colors';
+      }
+    };
 
     function updateBMIPreview() {
       const w = parseFloat(document.getElementById('regWeight').value);
@@ -456,6 +472,7 @@
       if (!birthDate) return showMsg('กรุณาเลือกวันเดือนปีเกิด');
       const todayStr = new Date().toISOString().slice(0, 10);
       if (birthDate > todayStr) return showMsg('วันเดือนปีเกิดต้องไม่เกินวันนี้');
+      if (!selectedGender) return showMsg('กรุณาเลือกเพศ');
       if (!initialWeight || initialWeight < 20) return showMsg('กรุณาระบุน้ำหนักที่ถูกต้อง');
       if (!initialHeight || initialHeight < 50) return showMsg('กรุณาระบุส่วนสูงที่ถูกต้อง');
 
@@ -481,10 +498,39 @@
 
         // ===== CREATE USER DOC =====
         const userRef = doc(db, 'users', firebaseUid);
+        // คำนวณอายุจาก birthDate
+        function calcAgeFromBirth(bd) {
+          if (!bd) return null;
+          const b = new Date(bd);
+          const n = new Date();
+          let age = n.getFullYear() - b.getFullYear();
+          const m = n.getMonth() - b.getMonth();
+          if (m < 0 || (m === 0 && n.getDate() < b.getDate())) age--;
+          return age;
+        }
+
+        // คำนวณแคลอรี่เป้าหมายจากเพศ อายุ น้ำหนัก ส่วนสูง × 1.2 (sedentary)
+        function calcCalorieGoal(gender, weight, height, age) {
+          if (!weight || !height || !age) return 2000;
+          let bmr;
+          if (gender === 'male') {
+            // BMR ชาย: 66 + (13.7 × weight) + (5 × height) - (6.8 × age)
+            bmr = 66 + (13.7 * weight) + (5 * height) - (6.8 * age);
+          } else {
+            // BMR หญิง: 655 + (9.6 × weight) + (1.8 × height) - (4.7 × age)
+            bmr = 655 + (9.6 * weight) + (1.8 * height) - (4.7 * age);
+          }
+          // TDEE = BMR × 1.2 (sedentary)
+          return Math.round(bmr * 1.2);
+        }
+
+        const age = calcAgeFromBirth(birthDate);
+        const calculatedGoal = calcCalorieGoal(selectedGender, initialWeight, initialHeight, age);
+
         const userData = {
           uid: firebaseUid, lineUid: lineUserId, displayName, phone, birthDate,
-          initialWeight, initialHeight, email: email || '', avatar: lineProfile.pictureUrl || '',
-          points: 0, wallet: 0, calorieGoal: 2000, createdAt: now, updatedAt: now,
+          gender: selectedGender, initialWeight, initialHeight, email: email || '', avatar: lineProfile.pictureUrl || '',
+          points: 0, wallet: 0, calorieGoal: calculatedGoal, calorieGoalAutoCalculated: true, createdAt: now, updatedAt: now,
         };
 
         await runTransaction(db, async (tx) => {

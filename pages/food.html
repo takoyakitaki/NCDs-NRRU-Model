@@ -351,10 +351,53 @@
   const today = formatLocalDate(new Date());
   selectedHistoryDate = today;
 
+  // 📐 ฟังก์ชันคำนวณอายุจากวันเกิด
+  function calcAgeFromBirth(bd) {
+    if (!bd) return null;
+    const b = new Date(bd);
+    const n = new Date();
+    let age = n.getFullYear() - b.getFullYear();
+    const m = n.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && n.getDate() < b.getDate())) age--;
+    return age;
+  }
+
+  // 📐 คำนวณแคลอรี่เป้าหมายจากเพศ อายุ น้ำหนัก ส่วนสูง × 1.2 (sedentary)
+  function calcCalorieGoalFromBody(gender, weight, height, age) {
+    if (!weight || !height || !age) return null;
+    let bmr;
+    if (gender === 'male') {
+      // BMR ชาย: 66 + (13.7 × weight) + (5 × height) - (6.8 × age)
+      bmr = 66 + (13.7 * weight) + (5 * height) - (6.8 * age);
+    } else {
+      // BMR หญิง: 655 + (9.6 × weight) + (1.8 × height) - (4.7 × age)
+      bmr = 655 + (9.6 * weight) + (1.8 * height) - (4.7 * age);
+    }
+    return Math.round(bmr * 1.2);
+  }
+
   // 👤 User profile listener
   onSnapshot(doc(db, 'users', uid), snap => {
     const profile = snap.data() || {};
-    calorieGoal = Number(profile.calorieGoal) || 2000;
+    
+    // ถ้า calorieGoalAutoCalculated เป็น true → คำนวณแคลอรี่ใหม่จากเพศ อายุ น้ำหนัก ส่วนสูง
+    if (profile.calorieGoalAutoCalculated === true) {
+      const gender = profile.gender || null;
+      const weight = profile.initialWeight || null;
+      const height = profile.initialHeight || null;
+      const age = calcAgeFromBirth(profile.birthDate);
+      const calculated = calcCalorieGoalFromBody(gender, weight, height, age);
+      if (calculated !== null && calculated !== Number(profile.calorieGoal)) {
+        // อัปเดตค่าใน Firestore แค่ครั้งแรกที่โหลด
+        updateDoc(doc(db, 'users', uid), { calorieGoal: calculated }).catch(err => {
+          console.warn('⚠️ Auto-update calorieGoal failed:', err.message);
+        });
+      }
+      calorieGoal = calculated || Number(profile.calorieGoal) || 2000;
+    } else {
+      calorieGoal = Number(profile.calorieGoal) || 2000;
+    }
+
     lineUserId = profile.lineUserId || profile.lineUid || session.lineUid || null;
     document.getElementById('calorieGoal').textContent = `${calorieGoal.toLocaleString()} kcal`;
     updateSummary(latestTodayEntries);
@@ -662,7 +705,8 @@
     const next = prompt('เป้าหมายแคลอรี่ต่อวัน (kcal)', calorieGoal);
     if (next === null) return;
     const value = Math.max(1, parseInt(next) || 2000);
-    try { await updateDoc(doc(db, 'users', uid), { calorieGoal: value }); } catch (err) { alert('บันทึกเป้าหมายไม่สำเร็จ: ' + err.message); }
+    // ถ้าผู้ใช้แก้ด้วยตนเอง → ปิด auto-calculation เพื่อไม่ให้คำนวณทับ
+    try { await updateDoc(doc(db, 'users', uid), { calorieGoal: value, calorieGoalAutoCalculated: false }); } catch (err) { alert('บันทึกเป้าหมายไม่สำเร็จ: ' + err.message); }
   };
 
   function parseEntryDate(entry) {
