@@ -139,7 +139,7 @@
 </div>
 
 <nav id="desktopNav">
-  <div class="nav-brand">💚 VitalVibe</div>
+  <div class="nav-brand">💚 Heddee</div>
   <a href="food.html" class="active"><span class="nav-icon">🍱</span>บันทึกอาหาร</a>
   <a href="exercise.html"><span class="nav-icon">🏃</span>ออกกำลังกาย</a>
   <a href="reminders.html"><span class="nav-icon">⏰</span>แจ้งเตือน</a>
@@ -456,7 +456,7 @@
       if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
       const res = await fetch('/api/send-line-message', {
         method: 'POST', headers,
-        body: JSON.stringify({ to: lineUserId, text: `VitalVibe: แคลอรี่วันนี้เต็มแล้ว (${total.toLocaleString()} / ${calorieGoal.toLocaleString()} kcal)` })
+        body: JSON.stringify({ to: lineUserId, text: `Heddee: แคลอรี่วันนี้เต็มแล้ว (${total.toLocaleString()} / ${calorieGoal.toLocaleString()} kcal)` })
       });
       await updateDoc(notifyRef, { status: res.ok ? 'sent' : 'failed', notifiedAt: new Date().toISOString() });
     } catch (err) {

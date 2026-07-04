@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VitalVibe - แจ้งเตือน</title>
+  <title>Heddee - แจ้งเตือน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
@@ -72,7 +72,7 @@
   <div class="flex-1 flex flex-col w-full max-w-full overflow-hidden">
 
     <div class="flex-shrink-0 pt-8 sm:pt-6 pb-4 px-5 bg-white border-b border-gray-100 sm:border-b-2">
-      <!-- <p class="text-xs text-gray-400 font-semibold uppercase tracking-widest">VitalVibe</p> -->
+      <!-- <p class="text-xs text-gray-400 font-semibold uppercase tracking-widest">Heddee</p> -->
       <h1 class="text-xl sm:text-2xl font-black text-gray-900">⏰ แจ้งเตือน</h1>
       <p class="text-xs text-gray-400 font-semibold mt-1">ยาและหมอนัดของคุณ</p>
     </div>
@@ -161,7 +161,7 @@
 
 <!-- Desktop Sidebar Nav -->
 <nav id="desktopNav">
-  <div class="nav-brand">💚 VitalVibe</div>
+  <div class="nav-brand">💚 Heddee</div>
   <a href="food.html"><span class="nav-icon">🍱</span>บันทึกอาหาร</a>
   <a href="exercise.html"><span class="nav-icon">🏃</span>ออกกำลังกาย</a>
   <a href="reminders.html" class="active"><span class="nav-icon">⏰</span>แจ้งเตือน</a>
@@ -414,7 +414,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             to: session.lineUid,
-            text: `VitalVibe: ถึงเวลาทานยา ${item.title}${item.note ? ` (${item.note})` : ''}`
+            text: `Heddee: ถึงเวลาทานยา ${item.title}${item.note ? ` (${item.note})` : ''}`
           })
         });
         await updateDoc(doc(db, 'reminders', item.id), {
