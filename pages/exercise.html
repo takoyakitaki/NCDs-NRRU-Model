@@ -348,10 +348,10 @@
       category_name_en: 'Daily Routine',
       icon: '🏡',
       sub_activities: [
-        { id: 401, name_th: 'งานบ้าน', name_en: 'Household chores', met: 2.5 },
-        { id: 402, name_th: 'ปลูกต้นไม้', name_en: 'Gardening / Planting', met: 3.0 },
-        { id: 403, name_th: 'ถอนหญ้า', name_en: 'Weeding', met: 3.5 },
-        { id: 404, name_th: 'ไทยเก๊ก ยืนสงบ/อยู่กับที่', name_en: 'Tai Chi movement (standing/low impact)', met: 2.8 }
+        { id: 401, name_th: 'งานบ้าน', name_en: '', met: 2.5 },
+        { id: 402, name_th: 'ปลูกต้นไม้', name_en: '', met: 3.0 },
+        { id: 403, name_th: 'ถอนหญ้า', name_en: '', met: 3.5 },
+        { id: 404, name_th: 'ไท่เก๊ก ยืนสงบ/อยู่กับที่', name_en: '', met: 2.8 }
       ]
     },
     {
@@ -425,7 +425,10 @@
   // ──────────────────────────────────────────────────────────
   onSnapshot(doc(db, 'users', uid), snap => {
     const profile = snap.data() || {};
-    if (profile.initialWeight) userWeight = profile.initialWeight;
+    const profileWeight = profile.weight || profile.initialWeight || (session && session.initialWeight);
+    if (profileWeight && !Number.isNaN(Number(profileWeight))) {
+      userWeight = Number(profileWeight);
+    }
     if (profile.exerciseGoal) exerciseGoal = profile.exerciseGoal;
     document.getElementById('exerciseCalorieTargetText').textContent = `เป้าหมาย: ${exerciseGoal} kcal`;
     document.getElementById('inputWeight').value = userWeight;
@@ -434,6 +437,34 @@
   }, err => {
     console.warn('⚠️ User profile listener error:', err.message);
   });
+
+  async function loadLatestUserWeight() {
+    try {
+      const snap = await getDocs(query(collection(db, 'bodyStats'), where('uid', '==', uid)));
+      const latest = snap.docs
+        .map(d => d.data())
+        .filter(item => item.weight != null && !Number.isNaN(Number(item.weight)))
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+      if (latest && latest.weight) {
+        userWeight = Number(latest.weight);
+      } else {
+        const profileSnap = await getDoc(doc(db, 'users', uid));
+        const profile = profileSnap.data() || {};
+        if (profile.initialWeight && !Number.isNaN(Number(profile.initialWeight))) {
+          userWeight = Number(profile.initialWeight);
+        } else if (session && session.initialWeight && !Number.isNaN(Number(session.initialWeight))) {
+          userWeight = Number(session.initialWeight);
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Load latest weight failed:', err.message);
+    } finally {
+      document.getElementById('inputWeight').value = userWeight;
+      if (selectedSubActivity) calculateCalories();
+    }
+  }
+
+  loadLatestUserWeight();
 
   // ──────────────────────────────────────────────────────────
   // 📋 Exercise logs listener — today
