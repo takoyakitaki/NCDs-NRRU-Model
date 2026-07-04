@@ -153,10 +153,9 @@
               oninput="calculateCalories()">
           </div>
           <div>
-            <label class="text-xs text-gray-400 font-bold uppercase">น้ำหนัก (kg)</label>
-            <input id="inputWeight" type="number" min="20" max="300" step="0.1"
-              class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold transition-colors focus:border-orange-400"
-              oninput="calculateCalories()">
+            <label class="text-xs text-gray-400 font-bold uppercase">น้ำหนักปัจจุบัน (kg)</label>
+            <div id="currentWeightDisplay" class="mt-1 w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-black text-gray-700 bg-gray-50">กำลังโหลด...</div>
+            <input id="inputWeight" type="hidden">
           </div>
         </div>
 
@@ -431,6 +430,7 @@
     }
     if (profile.exerciseGoal) exerciseGoal = profile.exerciseGoal;
     document.getElementById('exerciseCalorieTargetText').textContent = `เป้าหมาย: ${exerciseGoal} kcal`;
+    document.getElementById('currentWeightDisplay').textContent = userWeight > 0 ? `${userWeight} kg` : 'ไม่พบข้อมูลน้ำหนัก';
     document.getElementById('inputWeight').value = userWeight;
     updateExerciseSummary(todayEntries);
     if (selectedSubActivity) calculateCalories();
@@ -459,6 +459,7 @@
     } catch (err) {
       console.warn('⚠️ Load latest weight failed:', err.message);
     } finally {
+      document.getElementById('currentWeightDisplay').textContent = userWeight > 0 ? `${userWeight} kg` : 'ไม่พบข้อมูลน้ำหนัก';
       document.getElementById('inputWeight').value = userWeight;
       if (selectedSubActivity) calculateCalories();
     }
@@ -591,7 +592,7 @@
     if (!selectedSubActivity) return;
 
     const duration = parseFloat(document.getElementById('inputDuration').value) || 0;
-    const weight = parseFloat(document.getElementById('inputWeight').value) || 0;
+    const weight = userWeight;
 
     if (duration <= 0 || weight <= 0) {
       document.getElementById('calcResult').classList.add('hidden');
@@ -617,10 +618,10 @@
     if (!selectedSubActivity) return;
 
     const duration = parseFloat(document.getElementById('inputDuration').value) || 0;
-    const weight = parseFloat(document.getElementById('inputWeight').value) || 0;
+    const weight = userWeight;
 
     if (duration <= 0) return alert('กรุณากรอกระยะเวลา');
-    if (weight <= 0) return alert('กรุณากรอกน้ำหนัก');
+    if (weight <= 0) return alert('ไม่พบข้อมูลน้ำหนักปัจจุบัน กรุณาอัปเดตโปรไฟล์');
 
     const met = selectedSubActivity.met;
     const caloriesBurned = Math.round(met * 3.5 * (weight / 200) * duration);
