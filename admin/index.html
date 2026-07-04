@@ -104,17 +104,57 @@
           <input id="mIcon" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="🍱"></div>
         <div><label class="text-xs font-bold text-gray-500">คำอธิบาย</label>
           <input id="mDesc" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="บันทึกอาหารครบ 3 มื้อ"></div>
-        <div><label class="text-xs font-bold text-gray-500">ประเภทภารกิจ *</label>
-          <select id="mType" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
-            <option value="food">🍱 บันทึกอาหาร</option>
-            <option value="weight">⚖️ ชั่งน้ำหนัก</option>
-            <option value="health">📋 บันทึกสุขภาพ</option>
-            <option value="photo">📷 ถ่ายรูปอาหาร</option>
-            <option value="calorieGoal">🎯 กินไม่เกินเป้าหมาย</option>
-            <option value="exercise">🏃 ออกกำลังกาย</option>
+
+        <!-- ═══ รอบรีเซ็ต ═══ -->
+        <div><label class="text-xs font-bold text-gray-500">รอบรีเซ็ต *</label>
+          <select id="mResetType" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" onchange="updateMissionPreview()">
+            <option value="daily">📅 รายวัน</option>
+            <option value="weekly">📆 รายสัปดาห์</option>
           </select></div>
-        <div><label class="text-xs font-bold text-gray-500">จำนวนเป้าหมาย (target)</label>
-          <input id="mTarget" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="1" value="1"></div>
+
+        <!-- ═══ Template เงื่อนไข ═══ -->
+        <div><label class="text-xs font-bold text-gray-500">เงื่อนไขภารกิจ *</label>
+          <select id="mConditionTemplate" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" onchange="onMissionTemplateChange()">
+            <option value="record_count">📝 บันทึกครบตามจำนวนครั้ง</option>
+            <option value="calorie_goal">🎯 แคลอรี่ไม่เกินเป้าหมาย</option>
+            <option value="exercise_goal">🏃 เบิร์นแคลอรี่ตามเป้าหมาย</option>
+          </select></div>
+
+        <!-- ── พารามิเตอร์: record_count ── -->
+        <div id="mParamRecord" class="space-y-3">
+          <div><label class="text-xs font-bold text-gray-500">ต้องบันทึกอะไร</label>
+            <select id="mDataType" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" onchange="updateMissionPreview()">
+              <option value="food">🍱 อาหาร</option>
+              <option value="weight">⚖️ ชั่งน้ำหนัก</option>
+              <option value="sugar">🩸 ค่าน้ำตาล</option>
+              <option value="pressure">💓 ความดัน</option>
+              <option value="health">📋 สุขภาพทั่วไป</option>
+              <option value="exercise">🏃 ออกกำลังกาย</option>
+            </select></div>
+          <div><label class="text-xs font-bold text-gray-500">จำนวนครั้งที่ต้องบันทึก</label>
+            <input id="mCount" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="3" value="1" min="1" oninput="updateMissionPreview()"></div>
+        </div>
+
+        <!-- ── พารามิเตอร์: calorie_goal ── -->
+        <div id="mParamCalorie" class="hidden space-y-3">
+          <div><label class="text-xs font-bold text-gray-500">แคลอรี่สูงสุดที่อนุญาต (kcal/วัน)</label>
+            <input id="mCalValue" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="2000" value="2000" oninput="updateMissionPreview()"></div>
+        </div>
+
+        <!-- ── พารามิเตอร์: exercise_goal ── -->
+        <div id="mParamExercise" class="hidden space-y-3">
+          <div><label class="text-xs font-bold text-gray-500">แคลอรี่ที่ต้องเบิร์น (kcal)</label>
+            <input id="mExValue" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="300" value="300" oninput="updateMissionPreview()"></div>
+          <div><label class="text-xs font-bold text-gray-500">จำนวนวันที่ต้องออกกำลังกาย</label>
+            <input id="mExDays" type="number" class="w-full border rounded-lg px-3 py-2 text-sm mt-1" placeholder="3" value="3" min="1" oninput="updateMissionPreview()"></div>
+        </div>
+
+        <!-- ═══ Preview ═══ -->
+        <div id="mConditionPreview" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 text-center">
+          <p class="text-xs text-blue-400 font-bold">👁️ ตัวอย่างเงื่อนไข</p>
+          <p id="mPreviewText" class="text-sm font-bold text-blue-700 mt-1">บันทึกอาหาร 1 ครั้ง</p>
+        </div>
+
         <div><label class="text-xs font-bold text-gray-500">สถานะ</label>
           <select id="mActive" class="w-full border rounded-lg px-3 py-2 text-sm mt-1">
             <option value="true">เปิดใช้งาน</option>
@@ -727,44 +767,182 @@
   // ============================================================
   // 🏆 MISSIONS
   // ============================================================
+
+  // ── Data type labels ──
+  const DATA_TYPE_LABELS = {
+    food: '🍱 อาหาร',
+    weight: '⚖️ ชั่งน้ำหนัก',
+    sugar: '🩸 ค่าน้ำตาล',
+    pressure: '💓 ความดัน',
+    health: '📋 สุขภาพทั่วไป',
+    exercise: '🏃 ออกกำลังกาย'
+  };
+
+  // ── Build condition object from form ──
+  const buildConditionFromForm = () => {
+    const template = document.getElementById('mConditionTemplate').value;
+    const resetType = document.getElementById('mResetType').value;
+    const base = { template, resetType };
+
+    if (template === 'record_count') {
+      const dataType = document.getElementById('mDataType').value;
+      const count = parseInt(document.getElementById('mCount').value) || 1;
+      return { ...base, dataType, count };
+    }
+    if (template === 'calorie_goal') {
+      const calValue = parseInt(document.getElementById('mCalValue').value) || 2000;
+      return { ...base, calValue };
+    }
+    if (template === 'exercise_goal') {
+      const exValue = parseInt(document.getElementById('mExValue').value) || 300;
+      const exDays = parseInt(document.getElementById('mExDays').value) || 3;
+      return { ...base, exValue, exDays };
+    }
+    return base;
+  };
+
+  // ── Convert condition → legacy type + target (backward compat) ──
+  const conditionToLegacy = (condition) => {
+    if (!condition || !condition.template) return { type: 'food', target: 1 };
+    const t = condition.template;
+    if (t === 'record_count') {
+      return { type: condition.dataType || 'food', target: condition.count || 1 };
+    }
+    if (t === 'calorie_goal') {
+      return { type: 'calorieGoal', target: 1 };
+    }
+    if (t === 'exercise_goal') {
+      return { type: 'exercise', target: condition.exDays || 3 };
+    }
+    return { type: 'food', target: 1 };
+  };
+
+  // ── Generate preview text ──
+  const generatePreviewText = (condition) => {
+    if (!condition || !condition.template) return '–';
+    const t = condition.template;
+    if (t === 'record_count') {
+      const label = DATA_TYPE_LABELS[condition.dataType] || condition.dataType;
+      return `บันทึก ${label} ${condition.count || 1} ครั้ง`;
+    }
+    if (t === 'calorie_goal') {
+      return `กินแคลอรี่ไม่เกิน ${(condition.calValue || 2000).toLocaleString()} kcal/วัน`;
+    }
+    if (t === 'exercise_goal') {
+      return `ออกกำลังกายเบิร์นรวม ${(condition.exValue || 300).toLocaleString()} kcal อย่างน้อย ${condition.exDays || 3} วัน`;
+    }
+    return '–';
+  };
+
+  // ── Update preview ──
+  window.updateMissionPreview = () => {
+    const condition = buildConditionFromForm();
+    document.getElementById('mPreviewText').textContent = generatePreviewText(condition);
+  };
+
+  // ── On template change: show/hide param sections ──
+  window.onMissionTemplateChange = () => {
+    const t = document.getElementById('mConditionTemplate').value;
+    document.getElementById('mParamRecord').classList.toggle('hidden', t !== 'record_count');
+    document.getElementById('mParamCalorie').classList.toggle('hidden', t !== 'calorie_goal');
+    document.getElementById('mParamExercise').classList.toggle('hidden', t !== 'exercise_goal');
+    updateMissionPreview();
+  };
+
+  // ── Render missions with daily/weekly tabs ──
   const renderMissions = (missions) => {
     const el = document.getElementById('sectionContent');
+    const daily = missions.filter(m => (m.condition?.resetType || m.resetType || 'daily') === 'daily');
+    const weekly = missions.filter(m => (m.condition?.resetType || m.resetType || 'daily') === 'weekly');
+
     let html = `<div class="flex justify-between items-center mb-4">
       <p class="text-sm font-bold text-gray-600">${missions.length} ภารกิจ</p>
       <button onclick="openMissionModal()" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-lg">➕ เพิ่ม</button>
-    </div><div class="space-y-2">`;
+    </div>`;
 
-    missions.forEach(m => {
-      const active = m.active !== false;
-      html += `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start fade-in">
-        <div>
-          <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(m.icon || '🏆')}</span> ${escapeHtml(m.title)}</p>
-          <p class="text-xs text-gray-600 mt-1">${escapeHtml(m.desc || '')}</p>
-          <div class="flex flex-wrap gap-2 mt-2">
-            <span class="text-sm font-bold text-blue-600">⭐ ${escapeHtml(m.points)} แต้ม</span>
-            <span class="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">${escapeHtml(m.type || 'ทั่วไป')}</span>
-            <span class="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">เป้าหมาย: ${m.target || 1}</span>
-            <span class="text-xs font-bold ${active ? 'text-green-600 bg-green-100' : 'text-red-500 bg-red-100'} px-2 py-0.5 rounded-full">${active ? '✅ เปิด' : '❌ ปิด'}</span>
-          </div>
-        </div>
-        <div class="flex gap-2 flex-shrink-0">
-          <button onclick="editMission('${m._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️</button>
-          <button onclick="deleteRow('${m._id}','missions')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded">🗑</button>
-        </div>
-      </div>`;
-    });
-    html += '</div>';
+    // Tabs
+    html += `<div class="flex gap-1 mb-4">
+      <button id="missionTabDaily" onclick="switchMissionTab('daily')" class="px-4 py-2 rounded-lg text-xs font-bold tab-active">📅 รายวัน (${daily.length})</button>
+      <button id="missionTabWeekly" onclick="switchMissionTab('weekly')" class="px-4 py-2 rounded-lg text-xs font-bold tab-inactive">📆 รายสัปดาห์ (${weekly.length})</button>
+    </div>`;
+
+    // Daily panel
+    html += `<div id="missionPanelDaily" class="space-y-2">`;
+    daily.forEach(m => { html += renderMissionCard(m); });
+    if (!daily.length) html += `<p class="text-gray-400 text-sm text-center py-6">ยังไม่มีภารกิจรายวัน</p>`;
+    html += `</div>`;
+
+    // Weekly panel
+    html += `<div id="missionPanelWeekly" class="hidden space-y-2">`;
+    weekly.forEach(m => { html += renderMissionCard(m); });
+    if (!weekly.length) html += `<p class="text-gray-400 text-sm text-center py-6">ยังไม่มีภารกิจรายสัปดาห์</p>`;
+    html += `</div>`;
+
     el.innerHTML = html;
   };
 
-  // ── Mission Modal ──
+  // ── Switch mission tab ──
+  window.switchMissionTab = (tab) => {
+    const dailyBtn = document.getElementById('missionTabDaily');
+    const weeklyBtn = document.getElementById('missionTabWeekly');
+    const dailyPanel = document.getElementById('missionPanelDaily');
+    const weeklyPanel = document.getElementById('missionPanelWeekly');
+    if (!dailyBtn || !weeklyBtn || !dailyPanel || !weeklyPanel) return;
+
+    if (tab === 'daily') {
+      dailyBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold tab-active';
+      weeklyBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold tab-inactive';
+      dailyPanel.classList.remove('hidden');
+      weeklyPanel.classList.add('hidden');
+    } else {
+      weeklyBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold tab-active';
+      dailyBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold tab-inactive';
+      weeklyPanel.classList.remove('hidden');
+      dailyPanel.classList.add('hidden');
+    }
+  };
+
+  // ── Render single mission card ──
+  const renderMissionCard = (m) => {
+    const active = m.active !== false;
+    const condition = m.condition || {};
+    const resetType = condition.resetType || m.resetType || 'daily';
+    const preview = generatePreviewText(condition);
+    const legacyType = m.type || 'food';
+    const legacyTarget = m.target || 1;
+
+    return `<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start fade-in">
+      <div>
+        <p class="font-bold text-gray-800"><span class="text-lg">${escapeHtml(m.icon || '🏆')}</span> ${escapeHtml(m.title)}</p>
+        <p class="text-xs text-gray-600 mt-1">${escapeHtml(m.desc || '')}</p>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <span class="text-sm font-bold text-blue-600">⭐ ${escapeHtml(m.points)} แต้ม</span>
+          <span class="text-xs font-bold text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full">${resetType === 'weekly' ? '📆 รายสัปดาห์' : '📅 รายวัน'}</span>
+          <span class="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full" title="เงื่อนไข: ${escapeHtml(preview)}">${escapeHtml(preview)}</span>
+          <span class="text-xs font-bold ${active ? 'text-green-600 bg-green-100' : 'text-red-500 bg-red-100'} px-2 py-0.5 rounded-full">${active ? '✅ เปิด' : '❌ ปิด'}</span>
+        </div>
+      </div>
+      <div class="flex gap-2 flex-shrink-0">
+        <button onclick="editMission('${m._id}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded">✏️</button>
+        <button onclick="deleteRow('${m._id}','missions')" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded">🗑</button>
+      </div>
+    </div>`;
+  };
+
+  // ── Open Mission Modal (new) ──
   window.openMissionModal = () => {
     editingMissionId = null;
     document.getElementById('missionModalTitle').textContent = '➕ เพิ่มภารกิจ';
     ['mTitle', 'mPoints', 'mIcon', 'mDesc'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('mType').value = 'food';
-    document.getElementById('mTarget').value = '1';
+    document.getElementById('mResetType').value = 'daily';
+    document.getElementById('mConditionTemplate').value = 'record_count';
+    document.getElementById('mDataType').value = 'food';
+    document.getElementById('mCount').value = '1';
+    document.getElementById('mCalValue').value = '2000';
+    document.getElementById('mExValue').value = '300';
+    document.getElementById('mExDays').value = '3';
     document.getElementById('mActive').value = 'true';
+    onMissionTemplateChange();
     document.getElementById('missionModal').classList.remove('hidden');
   };
 
@@ -772,38 +950,58 @@
     document.getElementById('missionModal').classList.add('hidden');
   };
 
+  // ── Edit Mission ──
   window.editMission = async (id) => {
     editingMissionId = id;
     try {
       const snap = await getDoc(doc(db, 'missions', id));
       if (!snap.exists()) return showToast('ไม่พบภารกิจ', 'error');
       const m = snap.data();
+      const condition = m.condition || {};
+      const resetType = condition.resetType || m.resetType || 'daily';
+      const template = condition.template || 'record_count';
+
       document.getElementById('missionModalTitle').textContent = '✏️ แก้ไขภารกิจ';
       document.getElementById('mTitle').value = m.title ?? '';
       document.getElementById('mPoints').value = m.points ?? '';
       document.getElementById('mIcon').value = m.icon ?? '';
       document.getElementById('mDesc').value = m.desc ?? '';
-      document.getElementById('mType').value = m.type || 'food';
-      document.getElementById('mTarget').value = m.target || 1;
+      document.getElementById('mResetType').value = resetType;
+      document.getElementById('mConditionTemplate').value = template;
+      document.getElementById('mDataType').value = condition.dataType || m.type || 'food';
+      document.getElementById('mCount').value = condition.count || m.target || 1;
+      document.getElementById('mCalValue').value = condition.calValue || 2000;
+      document.getElementById('mExValue').value = condition.exValue || 300;
+      document.getElementById('mExDays').value = condition.exDays || 3;
       document.getElementById('mActive').value = m.active !== false ? 'true' : 'false';
+      onMissionTemplateChange();
       document.getElementById('missionModal').classList.remove('hidden');
     } catch (err) {
       showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
     }
   };
 
+  // ── Save Mission ──
   window.saveMission = async () => {
     const title = document.getElementById('mTitle').value.trim();
     const pts = parseInt(document.getElementById('mPoints').value) || 0;
     const icon = document.getElementById('mIcon').value.trim();
     const desc = document.getElementById('mDesc').value.trim();
-    const type = document.getElementById('mType').value;
-    const target = parseInt(document.getElementById('mTarget').value) || 1;
     const active = document.getElementById('mActive').value === 'true';
     if (!title || !pts) return showToast('กรุณากรอก ชื่อ และ แต้ม', 'error');
 
+    const condition = buildConditionFromForm();
+    const legacy = conditionToLegacy(condition);
+
     try {
-      const data = { title, points: pts, icon, desc, type, target, active };
+      const data = {
+        title, points: pts, icon, desc,
+        type: legacy.type,
+        target: legacy.target,
+        condition,
+        resetType: condition.resetType,
+        active
+      };
       if (editingMissionId) {
         await updateDoc(doc(db, 'missions', editingMissionId), data);
         showToast('อัปเดตภารกิจสำเร็จ');

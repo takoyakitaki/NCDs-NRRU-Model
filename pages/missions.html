@@ -198,16 +198,28 @@
   const session = requireAuth();
   if (!session) await new Promise(() => {});
   const uid  = session.uid;
-  const week = getWeekKey();
   let missionsById = new Map();
   let currentTab = 'missions';
   let currentRedeem = null;
 
-  function getWeekKey() {
-    const d = new Date();
+  function getWeekKey(date) {
+    const d = date || new Date();
     const jan1 = new Date(d.getFullYear(), 0, 1);
     const wk   = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
     return `${d.getFullYear()}-W${String(wk).padStart(2,'0')}`;
+  }
+
+  function getWeekRange(weekKey) {
+    const [year, wk] = weekKey.split('-W').map(Number);
+    const jan1 = new Date(year, 0, 1);
+    const daysOffset = (wk - 1) * 7 - jan1.getDay() + 1;
+    const start = new Date(year, 0, daysOffset + 1);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return {
+      start: formatLocalDate(start),
+      end: formatLocalDate(end)
+    };
   }
 
   function formatLocalDate(date) {
@@ -216,6 +228,17 @@
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
+
+  // ── Data type display ──
+  const DATA_TYPE_LABELS = {
+    food: '🍱 อาหาร',
+    weight: '⚖️ น้ำหนัก',
+    sugar: '🩸 น้ำตาล',
+    pressure: '💓 ความดัน',
+    health: '📋 สุขภาพ',
+    exercise: '🏃 ออกกำลังกาย',
+    calorieGoal: '🎯 แคลอรี่'
+  };
 
   // ── Points realtime ────────────────────────────────────────
   onSnapshot(doc(db,'users',uid), snap => {
@@ -250,46 +273,83 @@
 
   async function loadMissions() {
     const today = formatLocalDate(new Date());
+    const weekKey = getWeekKey();
+    const weekRange = getWeekRange(weekKey);
     const mSnap = await getDocs(collection(db,'missions'));
-    const allowedTypes = new Set(['food','weight','health','photo','calorieGoal']);
+    const allowedTypes = new Set(['food','weight','health','photo','calorieGoal','exercise','sugar','pressure']);
     const missions = (mSnap.empty
       ? DEFAULT_MISSIONS
       : mSnap.docs.map(d=>({id:d.id,...d.data()})))
       .filter(m => allowedTypes.has(m.type));
     missionsById = new Map(missions.map(m => [m.id, m]));
-    const progress = await calculateMissionProgress(missions, today);
+    const progress = await calculateMissionProgress(missions, today, weekRange);
 
-    const cSnap = await getDocs(query(
-      collection(db,'missionCompletions'),
-      where('uid','==',uid),
-      where('date','==',today)
-    ));
-    const completed = new Set(cSnap.docs.map(d=>d.data().missionId));
+    // Check completions based on resetType
+    const dailyMissions = missions.filter(m => (m.condition?.resetType || m.resetType || 'daily') === 'daily');
+    const weeklyMissions = missions.filter(m => (m.condition?.resetType || m.resetType || 'daily') === 'weekly');
+    const dailyIds = new Set(dailyMissions.map(m => m.id));
+    const weeklyIds = new Set(weeklyMissions.map(m => m.id));
+
+    const [dailyCSnap, weeklyCSnap] = await Promise.all([
+      getDocs(query(
+        collection(db,'missionCompletions'),
+        where('uid','==',uid),
+        where('date','==',today)
+      )),
+      getDocs(query(
+        collection(db,'missionCompletions'),
+        where('uid','==',uid),
+        where('date','>=',weekRange.start),
+        where('date','<=',weekRange.end)
+      ))
+    ]);
+    const completed = new Set();
+    dailyCSnap.docs.forEach(d => { if (dailyIds.has(d.data().missionId)) completed.add(d.data().missionId); });
+    weeklyCSnap.docs.forEach(d => { if (weeklyIds.has(d.data().missionId)) completed.add(d.data().missionId); });
     renderMissions(missions, completed, progress);
   }
 
-  async function calculateMissionProgress(missions, today) {
-    const [foodSnap, healthSnap, userSnap] = await Promise.all([
+  async function calculateMissionProgress(missions, today, weekRange) {
+    const [foodSnap, healthSnap, exerciseSnap, userSnap] = await Promise.all([
       getDocs(query(collection(db,'foodLogs'), where('uid','==',uid), where('date','==',today))),
       getDocs(query(collection(db,'healthLogs'), where('uid','==',uid))),
+      getDocs(query(collection(db,'exerciseLogs'), where('uid','==',uid), where('date','>=',weekRange.start), where('date','<=',weekRange.end))),
       getDoc(doc(db,'users',uid))
     ]);
     const foods = foodSnap.docs.map(d=>({id:d.id,...d.data()}));
     const healthLogs = healthSnap.docs
       .map(d=>({id:d.id,...d.data()}))
       .filter(e => e.createdAt && formatLocalDate(new Date(e.createdAt)) === today);
+    const exerciseLogs = exerciseSnap.docs.map(d=>({id:d.id,...d.data()}));
     const meals = new Set(foods.map(e => e.meal).filter(Boolean));
     const calorieTotal = foods.reduce((sum,e)=>sum+(Number(e.calories)||0),0);
     const calorieGoal = Number(userSnap.data()?.calorieGoal) || 2000;
     const progress = new Map();
     missions.forEach(m => {
+      const condition = m.condition || {};
+      const resetType = condition.resetType || m.resetType || 'daily';
       const target = Number(m.target) || 1;
       let value = 0;
+
       if (m.type === 'food') value = meals.size;
       if (m.type === 'photo') value = foods.filter(e => e.source === 'ai' || e.analyzedBy === 'gemini').length;
       if (m.type === 'weight') value = healthLogs.filter(e => e.type === 'weight').length;
+      if (m.type === 'sugar') value = healthLogs.filter(e => e.type === 'sugar').length;
+      if (m.type === 'pressure') value = healthLogs.filter(e => e.type === 'pressure').length;
       if (m.type === 'health') value = healthLogs.length;
       if (m.type === 'calorieGoal') value = foods.length > 0 && calorieTotal <= calorieGoal ? 1 : 0;
+      if (m.type === 'exercise') {
+        // For weekly: count unique days with exercise
+        if (resetType === 'weekly') {
+          const exDays = new Set(exerciseLogs.map(e => e.date).filter(Boolean));
+          value = exDays.size;
+        } else {
+          // Daily: count today's exercise entries
+          const todayEx = exerciseLogs.filter(e => e.date === today);
+          value = todayEx.length;
+        }
+      }
+
       progress.set(m.id, {
         value: Math.min(value, target),
         target,
@@ -305,6 +365,8 @@
   function renderMissions(missions, completed, progress) {
     const html = missions.map(m => {
       const done = completed.has(m.id);
+      const condition = m.condition || {};
+      const resetType = condition.resetType || m.resetType || 'daily';
       const p = progress.get(m.id) || { value:0, target:Number(m.target)||1, claimable:false, detail:`0 / ${m.target||1}` };
       return `<div class="fade-in bg-white border ${done?'border-green-200 bg-green-50':'border-gray-100'} rounded-3xl p-4 shadow-sm flex items-center gap-4">
         <div class="w-14 h-14 rounded-2xl ${done?'bg-green-100':'bg-amber-50'} flex items-center justify-center text-3xl flex-shrink-0">${done?'✅':m.icon}</div>
@@ -314,6 +376,7 @@
           <div class="flex items-center gap-1 mt-1">
             <span class="text-xs font-black" style="color: #fb7912;">+${m.points} แต้ม</span>
             <span class="text-xs font-black text-gray-300">· ${p.detail}</span>
+            ${resetType === 'weekly' ? '<span class="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full">📆 รายสัปดาห์</span>' : ''}
           </div>
         </div>
         ${done
@@ -333,15 +396,33 @@
     if (!mission) return alert('Mission not found');
     const points = Number(mission.points) || 0;
     const today = formatLocalDate(new Date());
-    const progress = await calculateMissionProgress([mission], today);
+    const weekKey = getWeekKey();
+    const weekRange = getWeekRange(weekKey);
+    const condition = mission.condition || {};
+    const resetType = condition.resetType || mission.resetType || 'daily';
+    const progress = await calculateMissionProgress([mission], today, weekRange);
     if (!progress.get(missionId)?.claimable) return alert('ยังทำภารกิจไม่ครบเงื่อนไข');
-    const cSnap = await getDocs(query(
-      collection(db,'missionCompletions'),
-      where('uid','==',uid),
-      where('missionId','==',missionId),
-      where('date','==',today)
-    ));
-    if (!cSnap.empty) return alert('ทำภารกิจนี้ไปแล้ววันนี้');
+
+    // Check if already completed this period
+    if (resetType === 'weekly') {
+      const cSnap = await getDocs(query(
+        collection(db,'missionCompletions'),
+        where('uid','==',uid),
+        where('missionId','==',missionId),
+        where('date','>=',weekRange.start),
+        where('date','<=',weekRange.end)
+      ));
+      if (!cSnap.empty) return alert('ทำภารกิจนี้ไปแล้วสัปดาห์นี้');
+    } else {
+      const cSnap = await getDocs(query(
+        collection(db,'missionCompletions'),
+        where('uid','==',uid),
+        where('missionId','==',missionId),
+        where('date','==',today)
+      ));
+      if (!cSnap.empty) return alert('ทำภารกิจนี้ไปแล้ววันนี้');
+    }
+
     await addDoc(collection(db,'missionCompletions'),{
       uid, missionId, points, date: today,
       completedAt: new Date().toISOString()
