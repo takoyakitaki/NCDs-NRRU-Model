@@ -462,6 +462,12 @@
       loadBodyStats();
       loadAllBodyStats();
       ['bs_height','bs_weight','bs_waist','bs_hip','bs_muscle','bs_bloodfat','bs_bloodsugar','bs_bloodpressure'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+      const content = document.getElementById('bodyStatsContent');
+      const icon = document.getElementById('bodyStatsToggleIcon');
+      if (content && !content.classList.contains('hidden')) {
+        content.classList.add('hidden');
+        icon.style.transform = '';
+      }
     } catch (err) { alert('บันทึกไม่สำเร็จ: ' + err.message); }
   };
 

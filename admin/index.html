@@ -274,6 +274,7 @@
   let editingMissionId = null;
   let editingUserId = null;
   let editingRedemptionId = null;
+  let dashboardChartInstance = null; // ➕ FIX: เก็บ instance ของกราฟไว้ เพื่อ destroy ก่อนสร้างใหม่
 
   // ── Toast ──
   const showToast = (msg, type = 'success') => {
@@ -310,6 +311,14 @@
   // ── Tab switching ──
   window.showSection = async (section) => {
     if (!isAdmin) return;
+
+    // ➕ FIX: ออกจาก dashboard section ทีไร ให้ destroy กราฟทิ้งก่อนเสมอ
+    // ป้องกัน instance ค้าง / canvas โตขึ้นเรื่อยๆ เวลาสลับแท็บกลับมาที่ dashboard ใหม่
+    if (dashboardChartInstance) {
+      dashboardChartInstance.destroy();
+      dashboardChartInstance = null;
+    }
+
     currentSection = section;
     document.querySelectorAll('.admin-tab').forEach(b => {
       b.className = 'admin-tab px-3 py-2 rounded-lg text-xs font-bold tab-inactive';
@@ -511,7 +520,9 @@
           <!-- Calorie Chart (last 7 days) -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
             <h3 class="font-bold text-gray-800 mb-3">📈 แคลอรี่รวม 7 วันล่าสุด</h3>
-            <canvas id="dashboardChart" height="200"></canvas>
+            <div style="position:relative; height:220px;">
+              <canvas id="dashboardChart"></canvas>
+            </div>
           </div>
 
           <!-- Quick Actions -->
@@ -544,7 +555,15 @@
       setTimeout(() => {
         const ctx = document.getElementById('dashboardChart');
         if (!ctx) return;
-        new Chart(ctx, {
+
+        // ➕ FIX: destroy กราฟเก่าก่อนสร้างใหม่ทุกครั้ง
+        // ป้องกัน memory leak และปัญหา canvas สูงขึ้นเรื่อยๆ เวลาสลับแท็บกลับมาที่ dashboard ซ้ำๆ
+        if (dashboardChartInstance) {
+          dashboardChartInstance.destroy();
+          dashboardChartInstance = null;
+        }
+
+        dashboardChartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
             labels: calorieLabels,
