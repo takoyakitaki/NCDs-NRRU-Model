@@ -367,23 +367,22 @@
   async function loadLeaderboard() {
     document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-300 py-10 font-bold">กำลังโหลด...</p>';
     try {
+      const myUserSnap = await getDoc(doc(db, 'users', uid));
+      const myPoints = Number(myUserSnap.data()?.points) || 0;
       const q9 = query(
-        collection(db,'leaderboard'),
-        where('week','==',week),
+        collection(db,'users'),
         orderBy('points','desc'),
         limit(9)
       );
-      const qAll = query(
-        collection(db,'leaderboard'),
-        where('week','==',week),
-        orderBy('points','desc')
-      );
-      const [snap9, snapAll] = await Promise.all([getDocs(q9), getDocs(qAll)]);
-      const top9     = snap9.docs.map(d=>({id:d.id,...d.data()}));
-      const allUsers = snapAll.docs.map(d=>({id:d.id,...d.data()}));
-      const myRank   = allUsers.findIndex(e => e.uid === uid) + 1;
+      const [snap9, higherSnap] = await Promise.all([
+        getDocs(q9),
+        getDocs(query(collection(db,'users'), where('points','>', myPoints)))
+      ]);
+      const top9 = snap9.docs.map(d=>({id:d.id,...d.data()}));
+      const higherCount = higherSnap.docs.length;
+      const myRank = higherCount + 1;
       document.getElementById('myRank').textContent = myRank ? `# ${myRank}` : '# –';
-      renderLeaderboard(top9, myRank, allUsers.length);
+      renderLeaderboard(top9, myRank, top9.length);
     } catch(err) {
       document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-300 py-10 font-bold">โหลดข้อมูลไม่สำเร็จ</p>';
       console.error('Leaderboard error:', err);
