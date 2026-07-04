@@ -22,7 +22,7 @@
     .status-confirmed{background:#dbeafe;color:#2563eb;}
     .status-delivered{background:#d1fae5;color:#059669;}
     .status-cancelled{background:#fee2e2;color:#dc2626;}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6;ring:2px solid #3b82f6;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15);}
   </style>
 </head>
 <body class="bg-gray-50 p-4">
@@ -31,7 +31,7 @@
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-2xl font-black text-gray-900">🛠️ Heddee Admin Panel</h1>
+      <h1 class="text-2xl font-black text-gray-900"><img src="/assets/logo.png" class="h-8 w-8 inline-block align-middle mr-2"> Heddee Admin Panel</h1>
       <p class="text-sm text-gray-500">จัดการระบบทั้งหมด</p>
     </div>
     <div class="flex items-center gap-3">
@@ -351,7 +351,7 @@
   };
 
   // ── Generic table renderer ──
-  const renderGenericTable = (docs, title, extraButtons = '') => {
+  const renderGenericTable = (docs, title, colName, extraButtons = '') => {
     const el = document.getElementById('sectionContent');
     if (!docs.length) {
       el.innerHTML = `<p class="text-gray-400 text-sm p-4">ไม่มีข้อมูล</p>${extraButtons}`;
@@ -370,7 +370,7 @@
           const display = raw.length > 80 ? raw.slice(0, 80) + '…' : raw;
           return `<td class="max-w-xs truncate" title="${escapeHtml(raw)}">${escapeHtml(display)}</td>`;
         }).join('')}
-        <td><button onclick="deleteRow('${escapeHtml(d._id)}','${colName}')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑 ลบ</button></td>
+        <td><button onclick="deleteRow('${escapeHtml(d._id)}','${escapeHtml(colName)}')" class="text-red-400 hover:text-red-600 text-xs font-bold">🗑 ลบ</button></td>
       </tr>`;
     });
     html += '</tbody></table></div>';
@@ -1276,6 +1276,28 @@
     } catch (err) {
       document.getElementById('systemStatsContent').innerHTML = `<p class="text-red-500 text-sm">โหลดไม่สำเร็จ: ${escapeHtml(err.message)}</p>`;
     }
+  };
+
+  window.saveSettings = async () => {
+    const adminUids = document.getElementById('s_adminUids')?.value || '';
+    const lineNotify = document.getElementById('s_lineNotify')?.value || 'true';
+    try {
+      const data = {
+        adminUids: adminUids.split(',').map(uid => uid.trim()).filter(Boolean),
+        lineNotifyEnabled: lineNotify === 'true',
+        updatedAt: new Date().toISOString(),
+        updatedBy: session?.uid || 'unknown'
+      };
+      await setDoc(doc(db, 'systemSettings', 'appConfig'), data, { merge: true });
+      showToast('บันทึกการตั้งค่าระบบสำเร็จ');
+      document.getElementById('settingsModal')?.classList.add('hidden');
+    } catch (err) {
+      showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    }
+  };
+
+  window.closeSettingsModal = () => {
+    document.getElementById('settingsModal')?.classList.add('hidden');
   };
 
   window.saveDefaultGoals = async () => {
