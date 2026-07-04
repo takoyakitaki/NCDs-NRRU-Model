@@ -200,7 +200,6 @@
   const uid  = session.uid;
   const week = getWeekKey();
   let missionsById = new Map();
-  let missionRanks = new Map();
   let currentTab = 'missions';
   let currentRedeem = null;
 
@@ -306,16 +305,11 @@
   function renderMissions(missions, completed, progress) {
     const html = missions.map(m => {
       const done = completed.has(m.id);
-      const rank = missionRanks.get(m.id) || 0;
-      const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
       const p = progress.get(m.id) || { value:0, target:Number(m.target)||1, claimable:false, detail:`0 / ${m.target||1}` };
       return `<div class="fade-in bg-white border ${done?'border-green-200 bg-green-50':'border-gray-100'} rounded-3xl p-4 shadow-sm flex items-center gap-4">
         <div class="w-14 h-14 rounded-2xl ${done?'bg-green-100':'bg-amber-50'} flex items-center justify-center text-3xl flex-shrink-0">${done?'✅':m.icon}</div>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1">
-            <p class="font-black text-gray-800 text-base">${m.title}</p>
-            <span class="text-[10px] font-black text-gray-500 bg-gray-100 px-2 py-1 rounded-full">อันดับแต้ม ${rankLabel}</span>
-          </div>
+          <p class="font-black text-gray-800 text-base">${m.title}</p>
           <p class="text-xs text-gray-400 mt-0.5 leading-snug">${m.desc}</p>
           <div class="flex items-center gap-1 mt-1">
             <span class="text-xs font-black" style="color: #fb7912;">+${m.points} แต้ม</span>
