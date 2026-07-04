@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>VitalVibe - LINE Login</title>
+  <title>Heddee - LINE Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
@@ -43,8 +43,10 @@
   </div>
   <div class="login-container float-up px-4 sm:px-6">
     <div class="text-center mb-4 sm:mb-6">
-      <div id="avatarPreview" class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl sm:rounded-3xl flex items-center justify-center text-2xl sm:text-4xl mb-2 sm:mb-3 shadow-2xl overflow-hidden" style="background:linear-gradient(135deg,#06c755,#14b8a6)">VV</div>
-      <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">VitalVibe</h1>
+      <div id="avatarPreview" class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl sm:rounded-3xl flex items-center justify-center mb-2 sm:mb-3 shadow-2xl overflow-hidden bg-white">
+        <img src="assets/logo.png" alt="Logo" class="w-full h-full object-contain">
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">Heddee</h1>
       <p id="subtitle" class="text-xs sm:text-sm text-emerald-400 font-semibold mt-1">Login with LINE</p>
     </div>
     <div class="card-glass rounded-2xl sm:rounded-3xl p-4 sm:p-6">
@@ -58,7 +60,7 @@
       <div id="registerView" class="hidden flex flex-col">
         <div class="mb-3 sm:mb-4 flex-shrink-0">
           <h2 class="text-white font-black text-lg sm:text-xl">📝 ลงทะเบียน</h2>
-          <p class="text-white/45 text-2xs sm:text-xs mt-1">กรอกข้อมูลเพื่อเริ่มใช้งาน VitalVibe</p>
+          <p class="text-white/45 text-2xs sm:text-xs mt-1">กรอกข้อมูลเพื่อเริ่มใช้งาน Heddee</p>
         </div>
         <div class="register-scroll space-y-2.5 sm:space-y-3 pr-1 flex-1">
           <div><label class="text-2xs sm:text-xs text-white/45 font-bold">ชื่อ - นามสกุล <span class="text-emerald-400">*</span></label><input id="regName" type="text" placeholder="เช่น สมชาย ใจดี" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
@@ -76,12 +78,12 @@
       <button id="btnLineLogin" class="hidden btn-primary w-full py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-white font-black text-xs sm:text-sm shadow-lg">เข้าสู่ระบบด้วย LINE</button>
       <div id="msgBox" class="hidden mt-3 sm:mt-4 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl text-2xs sm:text-sm text-center font-semibold break-words"></div>
     </div>
-    <p class="text-center text-white/30 text-2xs sm:text-xs mt-4 sm:mt-6 pb-2">VitalVibe for LINE Web App</p>
+    <p class="text-center text-white/30 text-2xs sm:text-xs mt-4 sm:mt-6 pb-2">Heddee for LINE Web App</p>
   </div>
 
   <script type="module">
     // ════════════════════════════════════════════════════════════
-    // VitalVibe Login Flow (Fixed v3 - Storage-Aware)
+    // Heddee Login Flow (Fixed v3 - Storage-Aware)
     //
     // KEY FIXES:
     // 1. Call signInAnonymously() BEFORE any Firestore reads

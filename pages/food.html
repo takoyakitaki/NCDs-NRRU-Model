@@ -162,13 +162,26 @@
       <h2 class="text-white font-black text-lg flex-1 text-center">ถ่ายหรืออัปโหลดรูปอาหาร</h2>
     </div>
     <div class="flex-1 overflow-y-auto hide-scrollbar">
-      <div id="uploadZone" class="m-4 border-2 border-dashed border-teal-300 rounded-2xl p-6 text-center cursor-pointer"
-           onclick="document.getElementById('fileInput').click()">
-        <span class="text-5xl">📷</span>
-        <p class="text-gray-500 font-semibold mt-2 text-sm">แตะเพื่อถ่ายรูป / เลือกรูป</p>
+      <!-- Two clear buttons: Camera / Gallery -->
+      <div class="m-4 grid grid-cols-2 gap-3">
+        <div onclick="document.getElementById('cameraInput').click()"
+             class="border-2 border-dashed border-teal-300 rounded-2xl p-5 text-center cursor-pointer hover:bg-teal-50 transition active:scale-[0.97]">
+          <span class="text-4xl">📷</span>
+          <p class="text-gray-600 font-black mt-1 text-sm">ถ่ายรูป</p>
+          <p class="text-[10px] text-gray-400">เปิดกล้อง</p>
+        </div>
+        <div onclick="document.getElementById('galleryInput').click()"
+             class="border-2 border-dashed border-teal-300 rounded-2xl p-5 text-center cursor-pointer hover:bg-teal-50 transition active:scale-[0.97]">
+          <span class="text-4xl">🖼️</span>
+          <p class="text-gray-600 font-black mt-1 text-sm">เลือกรูป</p>
+          <p class="text-[10px] text-gray-400">จากแกลเลอรี</p>
+        </div>
       </div>
       <img id="previewImg" class="hidden w-full max-h-64 object-contain px-4" />
-      <input id="fileInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="onFileSelected(event)">
+      <!-- Camera input: capture forces camera on mobile -->
+      <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="onFileSelected(event)">
+      <!-- Gallery input: no capture → opens file picker / gallery -->
+      <input id="galleryInput" type="file" accept="image/*" class="hidden" onchange="onFileSelected(event)">
       <div class="px-4 pb-2">
         <p class="text-xs text-gray-500 font-bold mb-2">มื้ออาหาร</p>
         <div class="flex gap-2">
