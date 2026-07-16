@@ -310,9 +310,10 @@
   }
 
   async function calculateMissionProgress(missions, today, weekRange) {
-    const [foodSnap, healthSnap, exerciseSnap, userSnap] = await Promise.all([
+    const [foodSnap, healthSnap, bodyStatsSnap, exerciseSnap, userSnap] = await Promise.all([
       getDocs(query(collection(db,'foodLogs'), where('uid','==',uid), where('date','==',today))),
       getDocs(query(collection(db,'healthLogs'), where('uid','==',uid))),
+      getDocs(query(collection(db,'bodyStats'), where('uid','==',uid))),
       getDocs(query(collection(db,'exerciseLogs'), where('uid','==',uid), where('date','>=',weekRange.start), where('date','<=',weekRange.end))),
       getDoc(doc(db,'users',uid))
     ]);
@@ -320,6 +321,9 @@
     const healthLogs = healthSnap.docs
       .map(d=>({id:d.id,...d.data()}))
       .filter(e => e.createdAt && formatLocalDate(new Date(e.createdAt)) === today);
+    const bodyStatsToday = bodyStatsSnap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .filter(e => e.weight != null && e.createdAt && formatLocalDate(new Date(e.createdAt)) === today);
     const exerciseLogs = exerciseSnap.docs.map(d=>({id:d.id,...d.data()}));
     const meals = new Set(foods.map(e => e.meal).filter(Boolean));
     const calorieTotal = foods.reduce((sum,e)=>sum+(Number(e.calories)||0),0);
@@ -333,7 +337,7 @@
 
       if (m.type === 'food') value = meals.size;
       if (m.type === 'photo') value = foods.filter(e => e.source === 'ai' || e.analyzedBy === 'gemini').length;
-      if (m.type === 'weight') value = healthLogs.filter(e => e.type === 'weight').length;
+      if (m.type === 'weight') value = bodyStatsToday.length;
       if (m.type === 'sugar') value = healthLogs.filter(e => e.type === 'sugar').length;
       if (m.type === 'pressure') value = healthLogs.filter(e => e.type === 'pressure').length;
       if (m.type === 'health') value = healthLogs.length;
