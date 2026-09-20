@@ -121,6 +121,18 @@ async function existingUserId(lineUid) {
   return name ? name.split('/').pop() : null;
 }
 
+// Catches the common paste mistakes — quotes left on, key truncated, wrong
+// field copied — at startup, with the reason, instead of letting them surface
+// later as an unexplained signing failure.
+let keyProblem = null;
+if (PRIVATE_KEY) {
+  try {
+    crypto.createPrivateKey(PRIVATE_KEY);
+  } catch (err) {
+    keyProblem = err.message;
+  }
+}
+
 export function firebaseCustomToken(uid) {
   const now = Math.floor(Date.now() / 1000);
   return signJwt({
@@ -144,6 +156,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Auth service is not configured' });
   }
 
+  if (keyProblem) {
+    console.error('FIREBASE_PRIVATE_KEY is not a usable PEM:', keyProblem);
+    return res.status(500).json({ error: 'Service account key is not usable', detail: keyProblem });
+  }
+
+  // Which step failed matters a lot when this breaks, and every step past the
+  // LINE check already required a valid token for this channel, so naming it
+  // in the response gives nothing away.
+  let step = 'read request';
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const accessToken = String(body?.lineAccessToken || '').trim();
@@ -151,21 +172,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'lineAccessToken is required' });
     }
 
+    step = 'verify LINE token';
     const lineUid = await lineUserIdFor(accessToken);
     if (!lineUid) {
       return res.status(401).json({ error: 'LINE access token is not valid for this app' });
     }
 
+    step = 'look up the account in Firestore';
     const existing = await existingUserId(lineUid);
     const uid = existing || `line_${lineUid}`;
 
-    return res.status(200).json({
-      token: firebaseCustomToken(uid),
-      uid,
-      isNew: !existing,
-    });
+    step = 'mint the custom token';
+    const token = firebaseCustomToken(uid);
+
+    return res.status(200).json({ token, uid, isNew: !existing });
   } catch (error) {
-    console.error('line-auth failed:', error);
-    return res.status(500).json({ error: 'Could not sign in with LINE' });
+    console.error(`line-auth failed while trying to ${step}:`, error);
+    return res.status(500).json({
+      error: `Could not sign in with LINE (failed to ${step})`,
+      detail: String(error.message || error).slice(0, 300),
+    });
   }
 }
