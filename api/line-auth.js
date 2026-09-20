@@ -150,6 +150,24 @@ if (PRIVATE_KEY) {
   }
 }
 
+// Counts and flags only — never any part of the key. Enough to tell an empty
+// variable from a truncated one, the wrong JSON field from a mangled PEM.
+function describeKey() {
+  const raw = String(process.env.FIREBASE_PRIVATE_KEY || '');
+  return {
+    build: 'pem-normalize',
+    rawLength: raw.length,
+    normalizedLength: PRIVATE_KEY.length,
+    hasBegin: raw.includes('-----BEGIN'),
+    hasEnd: raw.includes('-----END'),
+    label: (raw.match(/-----BEGIN ([A-Z ]+?)-----/) || [])[1] || null,
+    escapedNewlines: (raw.match(/\\n/g) || []).length,
+    realNewlines: (raw.match(/\n/g) || []).length,
+    startsWithQuote: /^["']/.test(raw.trim()),
+    looksLikeJson: raw.trim().startsWith('{'),
+  };
+}
+
 export function firebaseCustomToken(uid) {
   const now = Math.floor(Date.now() / 1000);
   return signJwt({
@@ -174,8 +192,9 @@ export default async function handler(req, res) {
   }
 
   if (keyProblem) {
-    console.error('FIREBASE_PRIVATE_KEY is not a usable PEM:', keyProblem);
-    return res.status(500).json({ error: 'Service account key is not usable', detail: keyProblem });
+    const shape = describeKey();
+    console.error('FIREBASE_PRIVATE_KEY is not a usable PEM:', keyProblem, shape);
+    return res.status(500).json({ error: 'Service account key is not usable', detail: keyProblem, shape });
   }
 
   // Which step failed matters a lot when this breaks, and every step past the
