@@ -150,23 +150,14 @@ if (PRIVATE_KEY) {
   }
 }
 
-// Counts and flags only — never any part of the key. Enough to tell an empty
-// variable from a truncated one, the wrong JSON field from a mangled PEM.
-function describeKey() {
-  const raw = String(process.env.FIREBASE_PRIVATE_KEY || '');
-  return {
-    build: 'pem-normalize',
-    rawLength: raw.length,
-    normalizedLength: PRIVATE_KEY.length,
-    hasBegin: raw.includes('-----BEGIN'),
-    hasEnd: raw.includes('-----END'),
-    label: (raw.match(/-----BEGIN ([A-Z ]+?)-----/) || [])[1] || null,
-    escapedNewlines: (raw.match(/\\n/g) || []).length,
-    realNewlines: (raw.match(/\n/g) || []).length,
-    startsWithQuote: /^["']/.test(raw.trim()),
-    looksLikeJson: raw.trim().startsWith('{'),
-  };
-}
+// A key that reaches here without its -----BEGIN----- line is the mistake that
+// actually happened: copying the middle of the JSON value and leaving the
+// header and footer behind. Worth naming, because the DECODER error alone
+// sends you looking at the key itself rather than at what was pasted.
+const keyHint =
+  keyProblem && !String(process.env.FIREBASE_PRIVATE_KEY || '').includes('-----BEGIN')
+    ? 'FIREBASE_PRIVATE_KEY has no -----BEGIN PRIVATE KEY----- line; copy the whole private_key value, header and footer included'
+    : keyProblem;
 
 export function firebaseCustomToken(uid) {
   const now = Math.floor(Date.now() / 1000);
@@ -191,10 +182,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Auth service is not configured' });
   }
 
+  // This check sits in front of the LINE token check, so anyone can reach it.
+  // The reason goes to the logs; the caller gets a bare "misconfigured".
   if (keyProblem) {
-    const shape = describeKey();
-    console.error('FIREBASE_PRIVATE_KEY is not a usable PEM:', keyProblem, shape);
-    return res.status(500).json({ error: 'Service account key is not usable', detail: keyProblem, shape });
+    console.error('FIREBASE_PRIVATE_KEY is not a usable PEM:', keyHint);
+    return res.status(500).json({ error: 'Auth service is not configured' });
   }
 
   // Which step failed matters a lot when this breaks, and every step past the
