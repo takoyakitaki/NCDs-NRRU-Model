@@ -23,7 +23,12 @@ import crypto from 'node:crypto';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'ncds-nrru-model';
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || '';
-const PRIVATE_KEY = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\n/g, '\n');
+// Vercel holds the key exactly as the service-account JSON spells it, with
+// backslash-n as two separate characters. Turn those into real newlines, and
+// leave a key that was pasted with real newlines untouched.
+const PRIVATE_KEY = (process.env.FIREBASE_PRIVATE_KEY || '')
+  .replace(/\\n/g, '\n')
+  .trim();
 const LINE_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID || '2010458383';
 
 const b64url = (input) => Buffer.from(input).toString('base64url');
