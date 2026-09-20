@@ -330,7 +330,7 @@
   import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
   import { auth } from '../lib/firebase.js';
 
-  const session = requireAuth();
+  const session = await requireAuth();
   if (!session) await new Promise(() => {});
   const uid = session.uid;
 

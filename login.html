@@ -84,16 +84,15 @@
 
   <script type="module">
     // ════════════════════════════════════════════════════════════
-    // Heddee Login Flow (Fixed v3 - Storage-Aware)
+    // Heddee Login Flow (v4 - LINE custom token)
     //
-    // KEY FIXES:
-    // 1. Call signInAnonymously() BEFORE any Firestore reads
-    //    → request.auth != null → Firestore rules pass
+    // 1. Exchange the LINE access token for a Firebase custom token via
+    //    /api/line-auth → auth.currentUser.uid IS the users/ document id,
+    //    on every device. (v3 used signInAnonymously, which minted a fresh
+    //    uid whenever storage was lost, so the rules could not check owners.)
     // 2. Handle Safari/Edge Tracking Prevention
     //    → localStorage may be blocked in embedded webviews
     //    → Fall back to in-memory + sessionStorage
-    // 3. Use authoritative Firestore UID from the user doc
-    //    → Never lose data across devices
     // ════════════════════════════════════════════════════════════
 
     const currentPath = window.location.pathname;
@@ -164,8 +163,8 @@
       throw new Error('LIFF_IDS.login missing');
     }
 
-    const { signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
-    const { collection, doc, getDocs, query, setDoc, where, runTransaction, addDoc } =
+    const { signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+    const { collection, doc, getDoc, runTransaction, addDoc } =
       await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
     // ── Redirect handling ────────────────────────────────
@@ -177,7 +176,7 @@
 
     let lineProfile = null;
     let liffInitPromise = null;
-    let firebaseReady = false; // true after signInAnonymously succeeds
+    let signedIn = null;   // { uid, isNew } once LINE has been exchanged for a Firebase session
 
     function ensureLiffInit() {
       if (!liffInitPromise) liffInitPromise = liff.init({ liffId: LIFF_IDS.login });
@@ -274,75 +273,31 @@
     }
 
     // ──────────────────────────────────────────────────────────
-    // 🔥 Ensure Firebase Auth is active (required for Firestore)
+    // 🔑 Trade the LINE session for a Firebase session
+    //
+    // /api/line-auth asks LINE whose access token this is, then mints a custom
+    // token for that person's existing user document — so auth.currentUser.uid
+    // is the document id, on every device, for good. Anonymous sign-in could
+    // never promise that, which is why the security rules had to stay open.
     // ──────────────────────────────────────────────────────────
-    async function ensureFirebaseAuth() {
-      if (firebaseReady && auth.currentUser) return auth.currentUser.uid;
-      
-      if (auth.currentUser) {
-        firebaseReady = true;
-        return auth.currentUser.uid;
-      }
-      
-      // Wait for auth state
-      const authUser = await new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(null), 5000);
-        const unsub = auth.onAuthStateChanged((user) => {
-          clearTimeout(timeout);
-          unsub();
-          resolve(user);
-        });
+    async function signInWithLine() {
+      if (signedIn) return signedIn;
+
+      const accessToken = liff.getAccessToken();
+      if (!accessToken) throw new Error('ไม่ได้รับ LINE access token กรุณาเข้าสู่ระบบ LINE ใหม่');
+
+      const res = await fetch('/api/line-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineAccessToken: accessToken }),
       });
-      
-      if (authUser) {
-        firebaseReady = true;
-        return authUser.uid;
-      }
-      
-      // signInAnonymously to create auth session
-      try {
-        const cred = await signInAnonymously(auth);
-        firebaseReady = true;
-        return cred.user.uid;
-      } catch (err) {
-        console.error('❌ signInAnonymously failed:', err.code, err.message);
-        if (err.code === 'auth/operation-not-allowed') {
-          throw new Error('Anonymous Login ยังไม่เปิด — เปิดที่ Firebase Console → Authentication → Sign-in method → Anonymous');
-        }
-        firebaseReady = false;
-        return null;
-      }
-    }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `เข้าสู่ระบบไม่สำเร็จ (HTTP ${res.status})`);
 
-    const LINE_UID_MAP_KEY = 'vv_line_uid_map';
-    function getMappedUid(lineUserId) {
-      try {
-        const raw = safeGetItem(LINE_UID_MAP_KEY);
-        if (!raw) return null;
-        const map = JSON.parse(raw);
-        return map[lineUserId] || null;
-      } catch { return null; }
-    }
-    function saveMappedUid(lineUserId, firebaseUid) {
-      try {
-        const raw = safeGetItem(LINE_UID_MAP_KEY) || '{}';
-        const map = JSON.parse(raw);
-        map[lineUserId] = firebaseUid;
-        safeSetItem(LINE_UID_MAP_KEY, JSON.stringify(map));
-      } catch (e) { console.warn('⚠️ Failed to save UID map:', e.message); }
-    }
-
-    async function findUserByLineId(lineUserId) {
-      if (!lineUserId) return null;
-      try {
-        // 🔑 KEY FIX: Must have Firebase Auth active before querying Firestore
-        await ensureFirebaseAuth();
-        const s = await getDocs(query(collection(db, 'users'), where('lineUid', '==', lineUserId)));
-        if (!s.empty) return { id: s.docs[0].id, data: s.docs[0].data() };
-      } catch (e) {
-        console.warn('⚠️ findUserByLineId failed:', e.message);
-      }
-      return null;
+      const cred = await signInWithCustomToken(auth, data.token);
+      signedIn = { uid: cred.user.uid, isNew: !!data.isNew };
+      console.log('✅ Firebase session for uid:', signedIn.uid, '(new:', signedIn.isNew, ')');
+      return signedIn;
     }
 
     function showRegister(profile) {
@@ -372,7 +327,6 @@
         initialWeight: userData.initialWeight || null,
         initialHeight: userData.initialHeight || null,
       });
-      saveMappedUid(profile.userId, firebaseUid);
       console.log('✅ Authoritative Firestore UID saved:', firebaseUid);
       window.location.href = redirect;
     }
@@ -382,20 +336,18 @@
       renderProfile(profile);
       setStatus('กำลังตรวจสอบการลงทะเบียน...');
       try {
-        // ✅ KEY FIX: ensureFirebaseAuth() is called inside findUserByLineId
-        const user = await findUserByLineId(profile.userId);
+        const { uid, isNew } = await signInWithLine();
 
-        if (!user) {
+        if (isNew) {
           lineProfile = profile;
           showRegister(profile);
           return;
         }
 
         // ===== RETURNING USER =====
-        const docId = user.id;
-        const userData = user.data;
         setStatus('กำลังเข้าสู่ระบบ...');
-        finishLogin(docId, userData, profile);
+        const snap = await getDoc(doc(db, 'users', uid));
+        finishLogin(uid, snap.data() || {}, profile);
 
       } catch (err) {
         showMsg('ตรวจสอบข้อมูลไม่สำเร็จ: ' + err.message);
@@ -484,20 +436,18 @@
       const now = new Date().toISOString();
 
       try {
-        // ตรวจสอบซ้ำ (with Firebase Auth already active)
-        const existing = await findUserByLineId(lineUserId);
-        if (existing) {
+        // the LINE session was already exchanged; its uid IS the document id
+        const { uid: firebaseUid } = await signInWithLine();
+        const userRef = doc(db, 'users', firebaseUid);
+
+        // ตรวจสอบซ้ำ — another device may have finished registering first
+        const existing = await getDoc(userRef);
+        if (existing.exists()) {
           showMsg('พบข้อมูลผู้ใช้แล้ว กำลังเข้าสู่ระบบ...', true);
-          finishLogin(existing.id, existing.data, lineProfile);
+          finishLogin(firebaseUid, existing.data(), lineProfile);
           return;
         }
 
-        // ===== CREATE FIREBASE AUTH SESSION =====
-        let firebaseUid = await ensureFirebaseAuth();
-        if (!firebaseUid) throw new Error('การยืนยันตัวตนล้มเหลว');
-
-        // ===== CREATE USER DOC =====
-        const userRef = doc(db, 'users', firebaseUid);
         // คำนวณอายุจาก birthDate
         function calcAgeFromBirth(bd) {
           if (!bd) return null;
@@ -551,7 +501,6 @@
           });
         } catch (bsErr) { console.warn('⚠️ bodyStats init failed (non-critical):', bsErr.message); }
 
-        saveMappedUid(lineUserId, firebaseUid);
         finishLogin(firebaseUid, userData, lineProfile);
 
       } catch (err) {

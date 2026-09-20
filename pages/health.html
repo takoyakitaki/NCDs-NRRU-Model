@@ -103,7 +103,7 @@
     onSnapshot, deleteDoc, doc, updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-  const session = requireAuth();
+  const session = await requireAuth();
   if (!session) await new Promise(() => {});
   const uid = session.uid;
 
