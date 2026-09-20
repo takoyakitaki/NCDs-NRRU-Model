@@ -266,7 +266,7 @@
   import { db, ADMIN_UIDS } from '../lib/firebase.js';
   import { getSession, clearSession } from '../lib/auth.js';
   import {
-    collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, getDoc, orderBy, limit, setDoc
+    collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, getDoc, orderBy, limit, setDoc, getCountFromServer
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
   import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
   import { auth } from '../lib/firebase.js';
@@ -447,33 +447,32 @@
 
     try {
       const today = new Date().toISOString().slice(0, 10);
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 6);
       const rangeStart = startDate.toISOString().slice(0, 10);
 
+      // a tile that only shows a number gets a server-side count (~1 read) instead of every doc
+      const countOf = async (...parts) => (await getCountFromServer(query(...parts))).data().count;
+
       const [
-        usersSnap, missionsSnap, rewardsSnap, redemptionsSnap,
-        foodSnap, exerciseSnap, healthSnap, remindersSnap,
-        transactionsSnap, bodyStatsSnap
+        usersSnap, foodSnap,
+        missionsCount, rewardsCount, redemptionsCount, pendingRedemptions,
+        exerciseCount, healthToday, activeReminders, transactionsCount, bodyStatsCount
       ] = await Promise.all([
         getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'missions')),
-        getDocs(collection(db, 'rewards')),
-        getDocs(collection(db, 'redemptions')),
         getDocs(query(collection(db, 'foodLogs'), where('date', '>=', rangeStart), where('date', '<=', today))),
-        getDocs(query(collection(db, 'exerciseLogs'), where('date', '==', today))),
-        getDocs(collection(db, 'healthLogs')),
-        getDocs(collection(db, 'reminders')),
-        getDocs(collection(db, 'transactions')),
-        getDocs(collection(db, 'bodyStats'))
+        countOf(collection(db, 'missions')),
+        countOf(collection(db, 'rewards')),
+        countOf(collection(db, 'redemptions')),
+        countOf(collection(db, 'redemptions'), where('status', '==', 'pending')),
+        countOf(collection(db, 'exerciseLogs'), where('date', '==', today)),
+        countOf(collection(db, 'healthLogs'), where('createdAt', '>=', today), where('createdAt', '<', tomorrow)),
+        countOf(collection(db, 'reminders'), where('status', '==', 'active')),
+        countOf(collection(db, 'transactions')),
+        countOf(collection(db, 'bodyStats'))
       ]);
 
-      const pendingRedemptions = redemptionsSnap.docs.filter(d => d.data().status === 'pending').length;
-      const healthToday = healthSnap.docs.filter(d => {
-        const c = d.data().createdAt;
-        return c && c.slice(0, 10) === today;
-      }).length;
-      const activeReminders = remindersSnap.docs.filter(d => d.data().status === 'active').length;
       const totalPoints = usersSnap.docs.reduce((sum, d) => sum + (d.data().points || 0), 0);
       const foodToday = foodSnap.docs.filter(f => f.data().date === today).length;
 
@@ -507,17 +506,17 @@
             </div>
             <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
               <p class="text-gray-600 text-xs font-bold">🏃 ออกกำลังวันนี้</p>
-              <p class="text-2xl font-black text-orange-600 mt-1">${exerciseSnap.size}</p>
+              <p class="text-2xl font-black text-orange-600 mt-1">${exerciseCount}</p>
               <p class="text-xs text-gray-500">รายการ</p>
             </div>
             <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
               <p class="text-gray-600 text-xs font-bold">🏆 Missions</p>
-              <p class="text-2xl font-black text-purple-600 mt-1">${missionsSnap.size}</p>
+              <p class="text-2xl font-black text-purple-600 mt-1">${missionsCount}</p>
               <p class="text-xs text-gray-500">ทั้งหมด</p>
             </div>
             <div class="bg-pink-50 border border-pink-200 rounded-lg p-3">
               <p class="text-gray-600 text-xs font-bold">🎁 Rewards</p>
-              <p class="text-2xl font-black text-pink-600 mt-1">${rewardsSnap.size}</p>
+              <p class="text-2xl font-black text-pink-600 mt-1">${rewardsCount}</p>
               <p class="text-xs text-gray-500">ทั้งหมด</p>
             </div>
             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
@@ -537,17 +536,17 @@
             </div>
             <div class="bg-red-50 border border-red-200 rounded-lg p-3">
               <p class="text-gray-600 text-xs font-bold">🧾 Redemptions</p>
-              <p class="text-2xl font-black text-red-600 mt-1">${redemptionsSnap.size}</p>
+              <p class="text-2xl font-black text-red-600 mt-1">${redemptionsCount}</p>
               <p class="text-xs text-gray-500">ทั้งหมด</p>
             </div>
             <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
               <p class="text-gray-600 text-xs font-bold">💰 Transactions</p>
-              <p class="text-2xl font-black text-cyan-600 mt-1">${transactionsSnap.size}</p>
+              <p class="text-2xl font-black text-cyan-600 mt-1">${transactionsCount}</p>
               <p class="text-xs text-gray-500">ทั้งหมด</p>
             </div>
             <div class="bg-lime-50 border border-lime-200 rounded-lg p-3">
               <p class="text-gray-600 text-xs font-bold">📊 Body Stats</p>
-              <p class="text-2xl font-black text-lime-600 mt-1">${bodyStatsSnap.size}</p>
+              <p class="text-2xl font-black text-lime-600 mt-1">${bodyStatsCount}</p>
               <p class="text-xs text-gray-500">ทั้งหมด</p>
             </div>
             <div class="bg-rose-50 border border-rose-200 rounded-lg p-3">
@@ -580,7 +579,7 @@
             <button onclick="showSection('missions')" class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-left hover:bg-purple-100 transition">
               <p class="text-lg">🏆</p>
               <p class="font-bold text-purple-800 text-sm">จัดการภารกิจ</p>
-              <p class="text-xs text-purple-600">${missionsSnap.size} ภารกิจ</p>
+              <p class="text-xs text-purple-600">${missionsCount} ภารกิจ</p>
             </button>
             <button onclick="showSection('settings')" class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-left hover:bg-gray-100 transition">
               <p class="text-lg">⚙️</p>
@@ -1479,18 +1478,16 @@
 
     // Load system stats
     try {
-      const [usersSnap, foodSnap, exSnap, healthSnap] = await Promise.all([
-        getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'foodLogs')),
-        getDocs(collection(db, 'exerciseLogs')),
-        getDocs(collection(db, 'healthLogs'))
-      ]);
+      const total = async (name) => (await getCountFromServer(collection(db, name))).data().count;
+      const [userCount, foodCount, exCount, healthCount] = await Promise.all(
+        ['users', 'foodLogs', 'exerciseLogs', 'healthLogs'].map(total)
+      );
       document.getElementById('systemStatsContent').innerHTML = `
         <div class="space-y-2 text-sm">
-          <p>👥 ผู้ใช้ทั้งหมด: <strong>${usersSnap.size}</strong> คน</p>
-          <p>🍱 บันทึกอาหาร: <strong>${foodSnap.size}</strong> รายการ</p>
-          <p>🏃 บันทึกออกกำลังกาย: <strong>${exSnap.size}</strong> รายการ</p>
-          <p>📋 บันทึกสุขภาพ: <strong>${healthSnap.size}</strong> รายการ</p>
+          <p>👥 ผู้ใช้ทั้งหมด: <strong>${userCount}</strong> คน</p>
+          <p>🍱 บันทึกอาหาร: <strong>${foodCount}</strong> รายการ</p>
+          <p>🏃 บันทึกออกกำลังกาย: <strong>${exCount}</strong> รายการ</p>
+          <p>📋 บันทึกสุขภาพ: <strong>${healthCount}</strong> รายการ</p>
           <p class="text-xs text-gray-400 mt-2">อัปเดตล่าสุด: ${new Date().toLocaleString('th-TH')}</p>
         </div>
       `;

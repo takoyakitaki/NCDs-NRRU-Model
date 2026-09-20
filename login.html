@@ -556,7 +556,9 @@
 
       } catch (err) {
         console.error('❌ Registration error:', err);
-        showMsg('สร้างบัญชีไม่สำเร็จ: ' + err.message);
+        showMsg(err.code === 'resource-exhausted'
+          ? 'ระบบใช้งานเกินโควตาประจำวัน กรุณาลองใหม่อีกครั้งภายหลัง'
+          : 'สร้างบัญชีไม่สำเร็จ: ' + err.message);
         btn.disabled = false; btn.textContent = 'สร้างบัญชี';
         isRegistering = false;
       }

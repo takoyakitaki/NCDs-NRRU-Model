@@ -192,7 +192,7 @@
   import { db } from '../lib/firebase.js';
   import {
     collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc,
-    query, where, orderBy, limit, onSnapshot, increment, runTransaction
+    query, where, orderBy, limit, onSnapshot, increment, runTransaction, getCountFromServer
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
   const session = requireAuth();
@@ -459,12 +459,12 @@
         orderBy('points','desc'),
         limit(9)
       );
-      const [snap9, higherSnap] = await Promise.all([
+      const [snap9, higherAgg] = await Promise.all([
         getDocs(q9),
-        getDocs(query(collection(db,'users'), where('points','>', myPoints)))
+        getCountFromServer(query(collection(db,'users'), where('points','>', myPoints)))
       ]);
       const top9 = snap9.docs.map(d=>({id:d.id,...d.data()}));
-      const higherCount = higherSnap.docs.length;
+      const higherCount = higherAgg.data().count;
       const myRank = higherCount + 1;
       document.getElementById('myRank').textContent = myRank ? `# ${myRank}` : '# –';
       renderLeaderboard(top9, myRank, top9.length);

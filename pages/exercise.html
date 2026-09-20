@@ -768,8 +768,14 @@
       daysContainer.innerHTML = '<p class="text-center text-gray-300 py-4 text-sm">กำลังโหลด...</p>';
       entriesContainer.innerHTML = '';
 
+      // ponytail: 90-day window covers week+month chart modes; widen if the day list needs more
+      const since = new Date(); since.setDate(since.getDate() - 90);
       const snap = await getDocs(
-        query(collection(db, 'exerciseLogs'), where('uid', '==', uid))
+        query(
+          collection(db, 'exerciseLogs'),
+          where('uid', '==', uid),
+          where('date', '>=', since.toISOString().slice(0, 10))
+        )
       );
 
       historyEntries = snap.docs

@@ -697,7 +697,7 @@
         createdAt: new Date().toISOString()
       });
       closeCameraModal();
-      await loadCalorieHistory();
+      // onSnapshot(foodQuery) already refires loadCalorieHistory() on this write
     } catch (err) { alert('บันทึกอาหารไม่สำเร็จ: ' + err.message); }
   };
 
@@ -779,7 +779,13 @@
     if (!chartWrapper || !loadingOverlay) return;
     try {
       loadingOverlay.classList.remove('hidden');
-      const snap = await getDocs(query(collection(db, 'foodLogs'), where('uid', '==', uid)));
+      const range = buildHistoryRange();
+      const snap = await getDocs(query(
+        collection(db, 'foodLogs'),
+        where('uid', '==', uid),
+        where('date', '>=', range[0]),
+        where('date', '<=', range[range.length - 1])
+      ));
       historyEntries = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
         const dateA = parseEntryDate(a);
         const dateB = parseEntryDate(b);
