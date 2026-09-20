@@ -65,6 +65,32 @@ await assertSucceeds(deleteDoc(doc(alice, 'foodLogs', 'f1')));
 await assertSucceeds(setDoc(doc(alice, 'dailyCalorieSummaries', `${ALICE}_2026-09-20`), { uid: ALICE, calories: 800 }));
 await assertSucceeds(getDoc(doc(alice, 'missions', 'm1')));
 
+// ── a brand new account can register ─────────────────────────
+// This is the one path that cannot be rehearsed in production without
+// orphaning a real person's records, so it gets covered here instead:
+// login.html writes users/{auth.currentUser.uid} and an opening bodyStats
+// row, for a uid that has no document yet.
+const NEWBIE = 'line_Unewbie';
+const newbie = env.authenticatedContext(NEWBIE).firestore();
+
+await assertSucceeds(
+  setDoc(doc(newbie, 'users', NEWBIE), {
+    uid: NEWBIE, lineUid: 'Unewbie', displayName: 'Newbie',
+    phone: '0811111111', birthDate: '1990-01-01', gender: 'male',
+    initialWeight: 65, initialHeight: 170, points: 0, calorieGoal: 1800,
+  })
+);
+await assertSucceeds(
+  setDoc(doc(newbie, 'bodyStats', 'newbie-first'), { uid: NEWBIE, height: 170, weight: 65 })
+);
+await assertSucceeds(getDoc(doc(newbie, 'users', NEWBIE)));
+await assertSucceeds(setDoc(doc(newbie, 'leaderboard', NEWBIE), { uid: NEWBIE, points: 0 }));
+
+// and registering cannot be used to plant a document under someone else's id
+await assertFails(setDoc(doc(newbie, 'users', ALICE), { uid: ALICE, displayName: 'stolen' }));
+await assertFails(setDoc(doc(newbie, 'users', 'line_Usomeoneelse'), { uid: 'line_Usomeoneelse' }));
+await assertFails(getDoc(doc(newbie, 'users', ALICE)));
+
 // ── ranking works without exposing users/ ────────────────────
 await assertSucceeds(getDocs(collection(mallory, 'leaderboard')));
 await assertSucceeds(setDoc(doc(alice, 'leaderboard', ALICE), { uid: ALICE, points: 60 }));
