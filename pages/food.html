@@ -477,13 +477,16 @@
     });
   }
 
+  let lastSavedSummary = null;
   async function saveDailyCalorieSummary(total) {
+    if (lastSavedSummary === total) return;  // onSnapshot refires per write; don't rewrite the same number
+    lastSavedSummary = total;
     try {
       await setDoc(doc(db, 'dailyCalorieSummaries', `${uid}_${today}`), {
         uid, date: today, calories: total, goal: calorieGoal,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-    } catch (err) { console.warn('⚠️ Daily summary save failed:', err.message); }
+    } catch (err) { lastSavedSummary = null; console.warn('⚠️ Daily summary save failed:', err.message); }
   }
 
   async function notifyCalorieGoalReached(total) {

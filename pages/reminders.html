@@ -183,7 +183,7 @@
 
 <script type="module">
   import { requireAuth } from '../lib/auth.js';
-  import { db } from '../lib/firebase.js';
+  import { db, auth } from '../lib/firebase.js';
   import {
     collection, addDoc, query, where, onSnapshot, deleteDoc, doc, updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -409,9 +409,13 @@
           });
           continue;
         }
+        let idToken = '';
+        try { idToken = await auth.currentUser.getIdToken(); } catch (_) {}
+        const headers = { 'Content-Type': 'application/json' };
+        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
         const res = await fetch('/api/send-line-message', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             to: session.lineUid,
             text: `Heddee: ถึงเวลาทานยา ${item.title}${item.note ? ` (${item.note})` : ''}`

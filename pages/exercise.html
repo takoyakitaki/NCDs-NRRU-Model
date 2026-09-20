@@ -254,7 +254,7 @@
   import { requireAuth, clearSession } from '../lib/auth.js';
   import { db, auth } from '../lib/firebase.js';
   import {
-    collection, addDoc, query, where,
+    collection, addDoc, query, where, orderBy, limit,
     onSnapshot, deleteDoc, doc, updateDoc,
     getDocs, getDoc, setDoc
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -440,7 +440,11 @@
 
   async function loadLatestUserWeight() {
     try {
-      const snap = await getDocs(query(collection(db, 'bodyStats'), where('uid', '==', uid)));
+      // newest first, then pick the first entry that actually recorded a weight
+      const snap = await getDocs(query(
+        collection(db, 'bodyStats'), where('uid', '==', uid),
+        orderBy('createdAt', 'desc'), limit(20)
+      ));
       const latest = snap.docs
         .map(d => d.data())
         .filter(item => item.weight != null && !Number.isNaN(Number(item.weight)))

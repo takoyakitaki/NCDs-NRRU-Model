@@ -2,37 +2,15 @@
 // api/send-line-message.js
 // Sends a LINE push message via LINE Messaging API.
 //
-// SECURITY FIX: Now validates Firebase ID Token before sending.
-// The caller must include Authorization: Bearer <idToken> header.
-// The API verifies the token and checks that the caller owns
-// the target LINE user ID (by looking up Firestore).
+// The caller must send Authorization: Bearer <Firebase ID token>.
+// The push target is taken from the caller's own users/{uid} document,
+// never from the request body, so this endpoint can only ever message
+// the account that is calling it.
 // ============================================================
 
-const LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
+import { bearerToken, verifyIdToken, fetchUserDoc, isRegisteredLineUid } from './_auth.js';
 
-// Firebase Admin SDK initialization for token verification
-// (only if running on Vercel with proper env vars)
-let admin = null;
-async function getAdmin() {
-  if (admin) return admin;
-  try {
-    const adminModule = await import('firebase-admin');
-    if (!adminModule.apps.length) {
-      adminModule.initializeApp({
-        credential: adminModule.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
-      });
-    }
-    admin = adminModule;
-    return admin;
-  } catch (e) {
-    console.warn('⚠️ Firebase Admin not available:', e.message);
-    return null;
-  }
-}
+const LINE_PUSH_URL = 'https://api.line.me/v2/bot/message/push';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -47,46 +25,36 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const to = String(body?.to || '').trim();
     const text = String(body?.text || '').trim();
-
-    if (!to || !text) {
-      return res.status(400).json({ error: 'Both "to" and "text" are required' });
+    if (!text) {
+      return res.status(400).json({ error: '"text" is required' });
     }
 
-    // ── Validate Firebase ID Token ──────────────────────────
-    // The caller must prove they own the target LINE user ID.
-    const authHeader = req.headers.authorization || '';
-    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    // ── Caller must prove who they are ──────────────────────
+    const idToken = bearerToken(req);
+    const callerUid = await verifyIdToken(idToken);
+    if (!callerUid) {
+      return res.status(401).json({ error: 'A valid Firebase ID token is required' });
+    }
 
-    if (idToken) {
-      try {
-        const adminApp = await getAdmin();
-        if (adminApp) {
-          const decoded = await adminApp.auth().verifyIdToken(idToken);
-          const callerUid = decoded.uid;
+    const claimed = String(body?.to || '').trim();
 
-          // Look up the caller's Firestore doc to verify they own this lineUid
-          const { getFirestore } = await import('firebase-admin/firestore');
-          const db = getFirestore();
-          const userDoc = await db.collection('users').doc(callerUid).get();
+    // Preferred path: the caller's token maps straight to their users/ document,
+    // so the target comes from the server and the body is only a cross-check.
+    const user = await fetchUserDoc(callerUid, idToken);
+    let to = user?.lineUid || '';
 
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            const userLineUid = userData.lineUid || userData.lineUserId;
-            if (userLineUid && userLineUid !== to) {
-              console.warn(`⚠️ Token validation: caller ${callerUid} tried to send to ${to} but owns ${userLineUid}`);
-              return res.status(403).json({ error: 'Forbidden: you can only send messages to your own LINE account' });
-            }
-          }
-        }
-      } catch (verifyErr) {
-        console.warn('⚠️ ID Token verification failed (non-blocking):', verifyErr.message);
-        // Non-blocking: allow request to proceed even if token verification fails
-        // (for backward compatibility during migration)
+    if (to) {
+      if (claimed && claimed !== to) {
+        console.warn(`caller ${callerUid} asked to message ${claimed} but owns ${to}`);
+        return res.status(403).json({ error: 'You can only send messages to your own LINE account' });
       }
+    } else if (await isRegisteredLineUid(claimed, idToken)) {
+      // Anonymous session that lost its original uid — fall back to the claimed
+      // target, but only if it belongs to a registered user of this app.
+      to = claimed;
     } else {
-      console.warn('⚠️ No Authorization header — request will proceed without validation');
+      return res.status(403).json({ error: 'No LINE account is linked to this user' });
     }
 
     // ── Send LINE message ───────────────────────────────────

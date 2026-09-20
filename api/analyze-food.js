@@ -1,3 +1,5 @@
+import { bearerToken, verifyIdToken } from './_auth.js';
+
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const DEFAULT_MODELS = [
   'gemini-3.1-flash-lite',
@@ -60,6 +62,11 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
+  }
+
+  // signed-in users only — this endpoint spends money on every call
+  if (!(await verifyIdToken(bearerToken(req)))) {
+    return res.status(401).json({ error: 'A valid Firebase ID token is required' });
   }
 
   try {

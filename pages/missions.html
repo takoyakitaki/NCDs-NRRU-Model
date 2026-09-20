@@ -310,10 +310,12 @@
   }
 
   async function calculateMissionProgress(missions, today, weekRange) {
+    // createdAt is a UTC ISO string; this is local midnight expressed in UTC
+    const dayStart = new Date(`${today}T00:00:00`).toISOString();
     const [foodSnap, healthSnap, bodyStatsSnap, exerciseSnap, userSnap] = await Promise.all([
       getDocs(query(collection(db,'foodLogs'), where('uid','==',uid), where('date','==',today))),
-      getDocs(query(collection(db,'healthLogs'), where('uid','==',uid))),
-      getDocs(query(collection(db,'bodyStats'), where('uid','==',uid))),
+      getDocs(query(collection(db,'healthLogs'), where('uid','==',uid), where('createdAt','>=',dayStart))),
+      getDocs(query(collection(db,'bodyStats'), where('uid','==',uid), where('createdAt','>=',dayStart))),
       getDocs(query(collection(db,'exerciseLogs'), where('uid','==',uid), where('date','>=',weekRange.start), where('date','<=',weekRange.end))),
       getDoc(doc(db,'users',uid))
     ]);

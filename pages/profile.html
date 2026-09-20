@@ -325,7 +325,7 @@
   import { db } from '../lib/firebase.js';
   import {
     doc, getDoc, updateDoc,
-    collection, getDocs, addDoc, query, where, orderBy, onSnapshot, runTransaction
+    collection, getDocs, addDoc, query, where, orderBy, limit, onSnapshot, runTransaction
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
   import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
   import { auth } from '../lib/firebase.js';
@@ -461,7 +461,7 @@
 
   async function loadBodyStats() {
     try {
-      const q = query(collection(db, 'bodyStats'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'bodyStats'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(1));
       const snap = await getDocs(q);
       let l = null;
       if (!snap.empty) {
