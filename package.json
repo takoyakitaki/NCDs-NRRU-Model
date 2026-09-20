@@ -7,7 +7,7 @@
     "@firebase/rules-unit-testing": "^5.0.0"
   },
   "scripts": {
-    "test": "node test_history_range.mjs && node test_api_auth.mjs && node test_custom_token.mjs",
+    "test": "node test_history_range.mjs && node test_api_auth.mjs && node test_pem_shapes.mjs && node test_custom_token.mjs",
     "test:rules": "firebase emulators:exec --only firestore \"node test_rules.mjs\""
   }
 }

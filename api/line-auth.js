@@ -23,12 +23,29 @@ import crypto from 'node:crypto';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'ncds-nrru-model';
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || '';
-// Vercel holds the key exactly as the service-account JSON spells it, with
-// backslash-n as two separate characters. Turn those into real newlines, and
-// leave a key that was pasted with real newlines untouched.
-const PRIVATE_KEY = (process.env.FIREBASE_PRIVATE_KEY || '')
-  .replace(/\\n/g, '\n')
-  .trim();
+// A PEM survives the trip through a dashboard field in several shapes: with
+// backslash-n as two characters (how the JSON spells it), with real newlines,
+// with the JSON's quotes still attached, or — when the input strips them — with
+// no line breaks at all. Rather than guess which, rebuild the PEM from its
+// base64 body, which is the same in every case.
+export function normalizePem(raw) {
+  const text = String(raw || '')
+    .replace(/\\r/g, '')
+    .replace(/\\n/g, '\n')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .trim();
+
+  const match = text.match(/-----BEGIN ([A-Z ]+?)-----([\s\S]*?)-----END \1-----/);
+  if (!match) return text; // not a PEM at all; let createPrivateKey say so
+
+  const [, label, body] = match;
+  const base64 = body.replace(/[^A-Za-z0-9+/=]/g, '');
+  const lines = base64.match(/.{1,64}/g) || [];
+  return `-----BEGIN ${label}-----\n${lines.join('\n')}\n-----END ${label}-----\n`;
+}
+
+const PRIVATE_KEY = normalizePem(process.env.FIREBASE_PRIVATE_KEY);
 const LINE_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID || '2010458383';
 
 const b64url = (input) => Buffer.from(input).toString('base64url');
@@ -169,7 +186,10 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const accessToken = String(body?.lineAccessToken || '').trim();
     if (!accessToken) {
-      return res.status(400).json({ error: 'lineAccessToken is required' });
+      // keyOk is a deploy marker as much as a status: reaching this line means
+      // the running build parsed the service account key. Without it, this
+      // response is indistinguishable from an older build's.
+      return res.status(400).json({ error: 'lineAccessToken is required', keyOk: true });
     }
 
     step = 'verify LINE token';
