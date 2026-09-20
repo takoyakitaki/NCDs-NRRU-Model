@@ -195,7 +195,7 @@
     query, where, orderBy, limit, onSnapshot, increment, runTransaction, getCountFromServer
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-  const session = requireAuth();
+  const session = await requireAuth();
   if (!session) await new Promise(() => {});
   const uid  = session.uid;
   let missionsById = new Map();
@@ -241,10 +241,28 @@
   };
 
   // ── Points realtime ────────────────────────────────────────
+  let mirroredPoints = null;
   onSnapshot(doc(db,'users',uid), snap => {
-    const points = snap.data()?.points || 0;
+    const d = snap.data() || {};
+    const points = d.points || 0;
     document.getElementById('myPoints').textContent = points.toLocaleString();
     document.getElementById('myPointsRank').textContent = points.toLocaleString() + ' ⭐';
+
+    // users/ holds phone numbers and body measurements, so only its owner may
+    // read it. Ranking reads this public projection instead — name, avatar,
+    // points and nothing else. Writing only on change keeps it off the quota.
+    if (mirroredPoints !== points) {
+      mirroredPoints = points;
+      setDoc(doc(db,'leaderboard',uid), {
+        uid, points,
+        displayName: d.displayName || session.displayName || 'ผู้ใช้',
+        avatar: d.avatar || session.avatar || '',
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(err => {
+        mirroredPoints = null;
+        console.warn('leaderboard mirror failed:', err.message);
+      });
+    }
   });
 
   // ── Tabs ───────────────────────────────────────────────────
@@ -457,13 +475,13 @@
       const myUserSnap = await getDoc(doc(db, 'users', uid));
       const myPoints = Number(myUserSnap.data()?.points) || 0;
       const q9 = query(
-        collection(db,'users'),
+        collection(db,'leaderboard'),
         orderBy('points','desc'),
         limit(9)
       );
       const [snap9, higherAgg] = await Promise.all([
         getDocs(q9),
-        getCountFromServer(query(collection(db,'users'), where('points','>', myPoints)))
+        getCountFromServer(query(collection(db,'leaderboard'), where('points','>', myPoints)))
       ]);
       const top9 = snap9.docs.map(d=>({id:d.id,...d.data()}));
       const higherCount = higherAgg.data().count;

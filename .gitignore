@@ -1,2 +1,7 @@
 .vercel
 .env*
+firestore-debug.log
+# Already-tracked files under node_modules stay tracked; this stops NEW
+# dependencies from being added to the repo. Untrack the rest with:
+#   git rm -r --cached node_modules
+node_modules/
