@@ -264,7 +264,7 @@
 
 <script type="module">
   import { db, ADMIN_UIDS } from '../lib/firebase.js';
-  import { requireAuth, clearSession } from '../lib/auth.js';
+  import { getSession, clearSession } from '../lib/auth.js';
   import {
     collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, getDoc, orderBy, limit, setDoc, getCountFromServer
   } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
@@ -280,7 +280,7 @@
   };
 
   // ── Auth Check ──
-  const session = await requireAuth();
+  const session = getSession();
   const isAdmin = session?.uid && ADMIN_UIDS.includes(session.uid);
 
   if (session?.uid) {
@@ -755,13 +755,6 @@
     };
     try {
       await updateDoc(doc(db, 'users', editingUserId), data);
-      // keep the public ranking projection in step with the edit
-      await setDoc(doc(db, 'leaderboard', editingUserId), {
-        uid: editingUserId,
-        points: data.points,
-        displayName: data.displayName,
-        updatedAt: data.updatedAt
-      }, { merge: true });
       showToast('อัปเดตผู้ใช้สำเร็จ');
       closeUserEditModal();
       loadUsers();

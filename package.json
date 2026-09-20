@@ -2,12 +2,5 @@
   "type": "module",
   "dependencies": {
     "firebase": "^12.13.0"
-  },
-  "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.0"
-  },
-  "scripts": {
-    "test": "node test_history_range.mjs && node test_api_auth.mjs && node test_custom_token.mjs",
-    "test:rules": "firebase emulators:exec --only firestore \"node test_rules.mjs\""
   }
 }

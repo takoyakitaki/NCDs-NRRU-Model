@@ -268,16 +268,54 @@
     appEl.classList.remove('hidden');
   }
 
-  const session = await requireAuth();
+  const session = requireAuth();
   if (!session || !session.uid) {
     showAuthError('ไม่พบข้อมูล session กรุณาเข้าสู่ระบบใหม่');
     throw new Error('No session');
   }
 
-  // requireAuth() already waited for Firebase Auth and confirmed this session
-  // owns the uid, so there is nothing left to check here.
-  const uid = session.uid;
-  console.log('✅ Using authoritative UID:', uid);
+  // ── Derive the effective UID ──────────────────────────────
+  // 🔑 KEY FIX: Use the authoritative Firestore UID from requireAuth().
+  // This is set by login.html via saveFirestoreUid() and is stable
+  // across sessions and devices.
+  let uid;
+  let useAuth = false;
+
+  loadingText.textContent = 'กำลังตรวจสอบสิทธิ์...';
+
+  // Step 1: Try to get Firebase Auth for LINE notify purposes
+  try {
+    if (auth.currentUser) {
+      useAuth = true;
+    } else {
+      loadingText.textContent = 'กำลังรอการยืนยันตัวตน...';
+      const authUser = await new Promise((resolve) => {
+        const timeout = setTimeout(() => resolve(null), 5000);
+        const unsub = auth.onAuthStateChanged((user) => {
+          clearTimeout(timeout);
+          unsub();
+          resolve(user);
+        });
+      });
+      if (authUser) {
+        useAuth = true;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Auth check error:', err.message);
+    useAuth = false;
+  }
+
+  // Step 2: Always use the authoritative UID from session (set by login.html via saveFirestoreUid)
+  uid = session.uid;
+
+  if (!uid) {
+    if (typeof clearSession === 'function') clearSession();
+    showAuthError('Session หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    throw new Error('No valid UID');
+  }
+
+  console.log('✅ Using authoritative UID:', uid, '(Firebase Auth available:', useAuth, ')');
   showApp();
 
   // ──────────────────────────────────────────────────────────
@@ -469,7 +507,7 @@
       await updateDoc(notifyRef, { status: res.ok ? 'sent' : 'failed', notifiedAt: new Date().toISOString() });
     } catch (err) {
       console.warn('⚠️ Calorie LINE notification failed:', err.message);
-      try { await setDoc(notifyRef, { uid, date: today, status: 'failed', error: err.message, updatedAt: new Date().toISOString() }, { merge: true }); } catch (_) {}
+      try { await setDoc(notifyRef, { status: 'failed', error: err.message, updatedAt: new Date().toISOString() }, { merge: true }); } catch (_) {}
     }
   }
 
