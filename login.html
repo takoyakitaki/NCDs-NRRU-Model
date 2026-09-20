@@ -292,7 +292,11 @@
         body: JSON.stringify({ lineAccessToken: accessToken }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `เข้าสู่ระบบไม่สำเร็จ (HTTP ${res.status})`);
+      if (!res.ok) {
+        const reason = data.error || `เข้าสู่ระบบไม่สำเร็จ (HTTP ${res.status})`;
+        console.error('line-auth rejected:', res.status, data);
+        throw new Error(data.detail ? `${reason} — ${data.detail}` : reason);
+      }
 
       const cred = await signInWithCustomToken(auth, data.token);
       signedIn = { uid: cred.user.uid, isNew: !!data.isNew };
