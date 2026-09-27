@@ -354,7 +354,7 @@
         finishLogin(uid, snap.data() || {}, profile);
 
       } catch (err) {
-        showMsg('ตรวจสอบข้อมูลไม่สำเร็จ: ' + err.message);
+        console.error(err); showMsg('ตรวจสอบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
         setStatus('เกิดข้อผิดพลาด');
         document.getElementById('statusView').classList.add('hidden');
         document.getElementById('btnLineLogin').classList.remove('hidden');
@@ -395,7 +395,7 @@
         document.getElementById('btnLineLogin').disabled = false;
         document.getElementById('btnLineLogin').textContent = 'ลองใหม่';
         setStatus('เชื่อมต่อ LINE ล้มเหลว');
-        showMsg(err.message || 'เข้าสู่ระบบไม่สำเร็จ');
+        showMsg('เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
       }
     }
 
@@ -407,7 +407,7 @@
         const urlRedirect = urlParams.get('redirect');
         if (urlRedirect) safeSetItem('vv_redirect', urlRedirect);
         liff.login({ redirectUri: APP_BASE_URL });
-      } catch (err) { showMsg(err.message); btn.disabled = false; btn.textContent = 'เข้าสู่ระบบด้วย LINE'; }
+      } catch (err) { console.error(err); showMsg('เชื่อมต่อ LINE ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); btn.disabled = false; btn.textContent = 'เข้าสู่ระบบด้วย LINE'; }
     });
 
     let isRegistering = false;
@@ -511,7 +511,7 @@
         console.error('❌ Registration error:', err);
         showMsg(err.code === 'resource-exhausted'
           ? 'ระบบใช้งานเกินโควตาประจำวัน กรุณาลองใหม่อีกครั้งภายหลัง'
-          : 'สร้างบัญชีไม่สำเร็จ: ' + err.message);
+          : 'สร้างบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
         btn.disabled = false; btn.textContent = 'สร้างบัญชี';
         isRegistering = false;
       }
@@ -527,7 +527,6 @@
       showMsg('เข้าสู่ระบบล้มเหลว กรุณาลองใหม่');
     });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+  <script src="/lib/debug.js"></script>
 </body>
 </html>

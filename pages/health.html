@@ -195,7 +195,7 @@
       });
       alert(interpretation);
     } catch (err) {
-      alert('บันทึกสุขภาพไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('บันทึกสุขภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -230,7 +230,7 @@
     }, err => {
       console.error('Health log listener failed:', err);
       document.getElementById('historyList').innerHTML =
-        `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดประวัติสุขภาพไม่สำเร็จ: ${err.message}</div>`;
+        `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดประวัติสุขภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</div>`;
     });
   }
 
@@ -325,7 +325,7 @@
       await updateDoc(doc(db,'healthLogs',id), updates);
       alert(updates.interpretation);
     } catch (err) {
-      alert('แก้ไขไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('แก้ไขไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -334,7 +334,7 @@
     try {
       await deleteDoc(doc(db,'healthLogs',id));
     } catch (err) {
-      alert('ลบไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -342,5 +342,6 @@
   renderForm();
   loadHistory();
 </script>
+  <script src="/lib/debug.js"></script>
 </body>
 </html>

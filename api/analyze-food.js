@@ -33,13 +33,42 @@ function extractInlineData(body) {
   return null;
 }
 
-function parseFood(text = '') {
+// Forces one object back. Without it, a photo of several dishes sometimes came
+// back as an array, which the old greedy {...} match turned into invalid JSON.
+const NUMBER = { type: 'NUMBER' };
+const FOOD_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    name: { type: 'STRING' },
+    calories: NUMBER, carbs: NUMBER, protein: NUMBER, fat: NUMBER, fiber: NUMBER, sodium: NUMBER,
+    note: { type: 'STRING' },
+  },
+  required: ['name', 'calories', 'carbs', 'protein', 'fat', 'fiber', 'sodium', 'note'],
+};
+
+const NUTRIENTS = ['calories', 'carbs', 'protein', 'fat', 'fiber', 'sodium'];
+
+export function parseFood(text = '') {
   const clean = text
     .replace(/```json/gi, '')
     .replace(/```/g, '')
     .trim();
-  const jsonText = clean.match(/\{[\s\S]*\}/)?.[0] || clean;
-  const parsed = JSON.parse(jsonText);
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch {
+    parsed = JSON.parse(clean.match(/\[[\s\S]*\]|\{[\s\S]*\}/)?.[0] || clean);
+  }
+
+  // one entry per dish: log them as a single meal
+  if (Array.isArray(parsed)) {
+    const dishes = parsed.filter(d => d && typeof d === 'object');
+    parsed = {
+      name: dishes.map(d => d.name).filter(Boolean).join(', '),
+      note: dishes.map(d => d.note).filter(Boolean).join(' / '),
+      ...Object.fromEntries(NUTRIENTS.map(k => [k, dishes.reduce((sum, d) => sum + (Number(d[k]) || 0), 0)])),
+    };
+  }
 
   return {
     name: String(parsed.name || '').trim(),
@@ -85,6 +114,7 @@ export default async function handler(req, res) {
       generationConfig: {
         temperature: 0.2,
         responseMimeType: 'application/json',
+        responseSchema: FOOD_SCHEMA,
       },
       contents: [{
         parts: [

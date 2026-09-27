@@ -226,7 +226,7 @@
   }, err => {
     console.error('Reminder listener failed:', err);
     document.getElementById('reminderList').innerHTML =
-      `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดแจ้งเตือนไม่สำเร็จ: ${err.message}</div>`;
+      `<div class="text-center text-red-400 py-8 font-bold text-sm">โหลดแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</div>`;
   });
 
   window.saveReminder = async () => {
@@ -252,7 +252,7 @@
       selectedRepeatDays = [];
       renderRepeatDayButtons();
     } catch (err) {
-      alert('บันทึกแจ้งเตือนไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('บันทึกแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -376,7 +376,7 @@
         });
       }
     } catch (err) {
-      alert('อัปเดตสถานะไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('อัปเดตสถานะไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -438,7 +438,7 @@
     try {
       await deleteDoc(doc(db, 'reminders', id));
     } catch (err) {
-      alert('ลบแจ้งเตือนไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('ลบแจ้งเตือนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -458,5 +458,6 @@
     return `${y}-${m}-${d}`;
   }
 </script>
+  <script src="/lib/debug.js"></script>
 </body>
 </html>

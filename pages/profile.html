@@ -460,7 +460,7 @@
         content.classList.add('hidden');
         icon.style.transform = '';
       }
-    } catch (err) { alert('บันทึกไม่สำเร็จ: ' + err.message); }
+    } catch (err) { console.error(err); alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   };
 
   async function loadBodyStats() {
@@ -782,5 +782,6 @@
   document.getElementById('tablePanel').classList.add('hidden');
   loadBodyStats();
 </script>
+  <script src="/lib/debug.js"></script>
 </body>
 </html>

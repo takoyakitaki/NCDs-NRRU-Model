@@ -459,7 +459,6 @@
       `<div class="text-center py-8">
         <p class="text-4xl mb-3">⚠️</p>
         <p class="text-red-400 font-bold text-sm">โหลดข้อมูลไม่สำเร็จ${hint}</p>
-        <p class="text-gray-300 text-xs mt-1">${err.message}</p>
       </div>`;
   });
 
@@ -624,7 +623,7 @@
       });
 
     } catch (err) {
-      alert('บันทึกไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -710,7 +709,7 @@
     try {
       await deleteDoc(doc(db, 'exerciseLogs', id));
     } catch (err) {
-      alert('ลบไม่สำเร็จ: ' + err.message);
+      console.error(err); alert('ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -785,7 +784,6 @@
       entriesContainer.innerHTML =
         `<div class="text-center py-6">
           <p class="text-red-400 font-bold text-sm">โหลดประวัติไม่สำเร็จ</p>
-          <p class="text-gray-300 text-xs mt-1">${err.message}</p>
         </div>`;
     }
   };
@@ -936,5 +934,6 @@
 
   console.log('🏃 Exercise page initialized for UID:', uid);
 </script>
+  <script src="/lib/debug.js"></script>
 </body>
 </html>

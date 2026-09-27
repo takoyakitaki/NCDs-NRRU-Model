@@ -390,7 +390,7 @@
       hint = ' (สิทธิ์ไม่ถูกต้อง — ลองล็อกอินใหม่)';
     }
     document.getElementById('mealSections').innerHTML =
-      `<div class="text-center py-8"><p class="text-4xl mb-3">⚠️</p><p class="text-red-400 font-bold text-sm">โหลดประวัติอาหารไม่สำเร็จ${hint}</p><p class="text-gray-300 text-xs mt-1">${err.message}</p><button onclick="location.href='/login.html'" class="mt-4 bg-teal-500 text-white font-bold px-6 py-2 rounded-xl text-sm">เข้าสู่ระบบใหม่</button></div>`;
+      `<div class="text-center py-8"><p class="text-4xl mb-3">⚠️</p><p class="text-red-400 font-bold text-sm">โหลดประวัติอาหารไม่สำเร็จ${hint}</p><button onclick="location.href='/login.html'" class="mt-4 bg-teal-500 text-white font-bold px-6 py-2 rounded-xl text-sm">เข้าสู่ระบบใหม่</button></div>`;
   });
 
   // Exercise is logged on another page, so one read per page load is enough.
@@ -513,7 +513,7 @@
 
   window.deleteEntry = async (id) => {
     if (!confirm('ลบรายการนี้?')) return;
-    try { await deleteDoc(doc(db, 'foodLogs', id)); } catch (err) { alert('ลบไม่สำเร็จ: ' + err.message); }
+    try { await deleteDoc(doc(db, 'foodLogs', id)); } catch (err) { console.error(err); alert('ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   };
 
   window.editEntry = async (id, encodedName, calories, carbs, protein, fat, fiber, sodium, encodedNote) => {
@@ -540,7 +540,7 @@
         fat: Math.max(0, parseInt(fatInput) || 0), fiber: Math.max(0, parseInt(fiberInput) || 0),
         sodium: Math.max(0, parseInt(sodiumInput) || 0), note: note.trim(), updatedAt: new Date().toISOString()
       });
-    } catch (err) { alert('แก้ไขไม่สำเร็จ: ' + err.message); }
+    } catch (err) { console.error(err); alert('แก้ไขไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   };
 
   window.openCamera = () => {
@@ -577,7 +577,7 @@
       document.getElementById('analyzeBtn').disabled = false;
       document.getElementById('analyzeResult').classList.add('hidden');
       document.getElementById('saveBtn').classList.add('hidden');
-    }).catch(err => { alert('อ่านรูปไม่สำเร็จ: ' + err.message); selectedFile = null; selectedB64 = null; });
+    }).catch(err => { console.error(err); alert('อ่านรูปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); selectedFile = null; selectedB64 = null; });
   };
 
   function resizeImage(file, maxSize = 1024, quality = 0.7) {
@@ -644,7 +644,7 @@
       status.textContent = '✅ วิเคราะห์เสร็จแล้ว แก้ไขได้ก่อนบันทึก';
     } catch (err) {
       console.error('❌ Analyze failed:', err);
-      let displayMsg = err.message || 'ไม่ทราบสาเหตุ';
+      let displayMsg = 'กรุณาลองใหม่อีกครั้ง';
       if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) displayMsg = 'ไม่มีอินเทอร์เน็ต กรุณาเชื่อมต่อแล้วลองอีกครั้ง';
       else if (err.message.includes('400') || err.message.includes('BAD_REQUEST')) displayMsg = 'รูปภาพไม่เหมาะสมหรือใหญ่เกินไป ลองถ่ายรูปใหม่';
       else if (err.message.includes('429') || err.message.includes('QUOTA')) displayMsg = 'วิเคราะห์เต็มจำนวนแล้ว ลองอีกสักครู่';
@@ -672,7 +672,7 @@
       });
       closeCameraModal();
       // onSnapshot(foodQuery) already refreshes today in the history on this write
-    } catch (err) { alert('บันทึกอาหารไม่สำเร็จ: ' + err.message); }
+    } catch (err) { console.error(err); alert('บันทึกอาหารไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   };
 
   window.editCalorieGoal = async () => {
@@ -680,7 +680,7 @@
     if (next === null) return;
     const value = Math.max(1, parseInt(next) || 2000);
     // ถ้าผู้ใช้แก้ด้วยตนเอง → ปิด auto-calculation เพื่อไม่ให้คำนวณทับ
-    try { await updateDoc(doc(db, 'users', uid), { calorieGoal: value, calorieGoalAutoCalculated: false }); } catch (err) { alert('บันทึกเป้าหมายไม่สำเร็จ: ' + err.message); }
+    try { await updateDoc(doc(db, 'users', uid), { calorieGoal: value, calorieGoalAutoCalculated: false }); } catch (err) { console.error(err); alert('บันทึกเป้าหมายไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   };
 
   function parseEntryDate(entry) {
@@ -773,7 +773,7 @@
     } catch (err) {
       console.error('Load history failed:', err);
       if (loadingOverlay) loadingOverlay.classList.add('hidden');
-      chartWrapper.innerHTML = `<div class="p-4 text-center"><p class="text-sm font-black text-red-400">โหลดประวัติไม่สำเร็จ</p><p class="mt-1 text-xs text-gray-300">${escapeHtml(err.message)}</p></div>`;
+      chartWrapper.innerHTML = `<div class="p-4 text-center"><p class="text-sm font-black text-red-400">โหลดประวัติไม่สำเร็จ</p></div>`;
     }
   };
 
@@ -903,5 +903,6 @@
     `;
   };
 </script>
+  <script src="/lib/debug.js"></script>
 </body>
 </html>
