@@ -298,6 +298,7 @@
   let lineUserId = session.lineUid || null;
   let latestTodayEntries = [];
   let historyEntries = [];
+  let pastHistoryEntries = null; // days before today; fetched once, today comes from the live listener
   let historyMode = 'week';
   let selectedHistoryDate = null;
   let historySummaryChart = null;
@@ -381,7 +382,7 @@
     latestTodayEntries = entries;
     renderMeals(entries);
     updateSummary(entries);
-    loadCalorieHistory();
+    loadCalorieHistory();  // re-reads only today's snapshot; past days are cached
   }, err => {
     console.error('❌ Food log listener failed:', err);
     let hint = '';
@@ -392,17 +393,25 @@
       `<div class="text-center py-8"><p class="text-4xl mb-3">⚠️</p><p class="text-red-400 font-bold text-sm">โหลดประวัติอาหารไม่สำเร็จ${hint}</p><p class="text-gray-300 text-xs mt-1">${err.message}</p><button onclick="location.href='/login.html'" class="mt-4 bg-teal-500 text-white font-bold px-6 py-2 rounded-xl text-sm">เข้าสู่ระบบใหม่</button></div>`;
   });
 
+  // Exercise is logged on another page, so one read per page load is enough.
+  // updateSummary runs on every food/profile snapshot and used to re-query each time.
+  let exerciseCaloriesToday = null;
+  function loadExerciseCalories() {
+    exerciseCaloriesToday ??= getDocs(query(
+      collection(db, 'exerciseLogs'),
+      where('uid', '==', uid),
+      where('date', '==', today)
+    )).then(exSnap => exSnap.docs.reduce((s, d) => s + (d.data().calories || 0), 0))
+      .catch(err => { exerciseCaloriesToday = null; throw err; });
+    return exerciseCaloriesToday;
+  }
+
   // 📊 Calorie summary
   function updateSummary(entries) {
     const foodTotal = entries.reduce((s, e) => s + (e.calories || 0), 0);
     
     // ดึงแคลอรี่จากการออกกำลังกายเพื่อลบออก
-    getDocs(query(
-      collection(db, 'exerciseLogs'),
-      where('uid', '==', uid),
-      where('date', '==', today)
-    )).then(exSnap => {
-      const exerciseCalories = exSnap.docs.reduce((s, d) => s + (d.data().calories || 0), 0);
+    loadExerciseCalories().then(exerciseCalories => {
       
       // คำนวนแคลอรี่สุทธิ: ถ้าแคลอรี่อาหาร > 0 จะลบแคลอรี่จากการออกกำลังกาย
       let netCalories = foodTotal;
@@ -662,7 +671,7 @@
         createdAt: new Date().toISOString()
       });
       closeCameraModal();
-      // onSnapshot(foodQuery) already refires loadCalorieHistory() on this write
+      // onSnapshot(foodQuery) already refreshes today in the history on this write
     } catch (err) { alert('บันทึกอาหารไม่สำเร็จ: ' + err.message); }
   };
 
@@ -700,9 +709,9 @@
       : { weekday: 'short', day: 'numeric', month: 'short' });
   }
 
-  function buildHistoryRange() {
+  function buildHistoryRange(mode = historyMode) {
     const now = new Date();
-    if (historyMode === 'month') {
+    if (mode === 'month') {
       const days = [];
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -743,15 +752,19 @@
     const loadingOverlay = document.getElementById('historyChartLoading');
     if (!chartWrapper || !loadingOverlay) return;
     try {
-      loadingOverlay.classList.remove('hidden');
-      const range = buildHistoryRange();
-      const snap = await getDocs(query(
-        collection(db, 'foodLogs'),
-        where('uid', '==', uid),
-        where('date', '>=', range[0]),
-        where('date', '<=', range[range.length - 1])
-      ));
-      historyEntries = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
+      if (!pastHistoryEntries) {
+        loadingOverlay.classList.remove('hidden');
+        // one fetch covers both week and month views, so switching modes costs nothing
+        const from = [buildHistoryRange('week')[0], buildHistoryRange('month')[0]].sort()[0];
+        const snap = await getDocs(query(
+          collection(db, 'foodLogs'),
+          where('uid', '==', uid),
+          where('date', '>=', from),
+          where('date', '<', today)
+        ));
+        pastHistoryEntries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+      historyEntries = [...latestTodayEntries, ...pastHistoryEntries].sort((a, b) => {
         const dateA = parseEntryDate(a);
         const dateB = parseEntryDate(b);
         return dateB.localeCompare(dateA) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''));

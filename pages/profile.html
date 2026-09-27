@@ -448,7 +448,11 @@
       await addDoc(collection(db, 'bodyStats'), data);
       alert('✅ บันทึกสถิติร่างกายสำเร็จ');
       loadBodyStats();
-      loadAllBodyStats();
+      if (bodyStatsLoaded) {
+        allBodyStats.push(data);
+        renderStatsTable();
+        updateChart();
+      }
       ['bs_height','bs_weight','bs_waist','bs_hip','bs_muscle','bs_bloodfat','bs_bloodsugar','bs_bloodpressure'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
       const content = document.getElementById('bodyStatsContent');
       const icon = document.getElementById('bodyStatsToggleIcon');
@@ -506,14 +510,17 @@
   }
 
   let allBodyStats = [];
+  let bodyStatsLoaded = false;
   let statsChart = null;
 
-  // โหลดข้อมูลประวัติสถิติร่างกายทั้งหมด
+  // โหลดประวัติสถิติร่างกาย — only when the history section is opened.
+  // ponytail: newest 100 only; add paging if anyone needs older entries.
   async function loadAllBodyStats() {
     try {
-      const q = query(collection(db, 'bodyStats'), where('uid', '==', uid), orderBy('createdAt', 'asc'));
+      const q = query(collection(db, 'bodyStats'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(100));
       const snap = await getDocs(q);
-      allBodyStats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      allBodyStats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse();
+      bodyStatsLoaded = true;
       console.log('📈 All body stats loaded:', allBodyStats);
       renderStatsTable();
       updateChart();
@@ -533,7 +540,7 @@
       if (document.getElementById('chartPanel').classList.contains('hidden')) {
         window.switchStatsTab('chart');
       }
-      if (allBodyStats.length === 0) {
+      if (!bodyStatsLoaded) {
         loadAllBodyStats();
       }
     }
@@ -774,7 +781,6 @@
   document.getElementById('chartPanel').classList.add('hidden');
   document.getElementById('tablePanel').classList.add('hidden');
   loadBodyStats();
-  loadAllBodyStats();
 </script>
 </body>
 </html>

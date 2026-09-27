@@ -199,21 +199,15 @@
   if (!session) await new Promise(() => {});
   const uid  = session.uid;
   let missionsById = new Map();
+  let missionProgress = new Map();   // from the last loadMissions()
+  let completedMissions = new Set();
   let currentTab = 'missions';
   let currentRedeem = null;
 
-  function getWeekKey(date) {
-    const d = date || new Date();
-    const jan1 = new Date(d.getFullYear(), 0, 1);
-    const wk   = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-    return `${d.getFullYear()}-W${String(wk).padStart(2,'0')}`;
-  }
-
-  function getWeekRange(weekKey) {
-    const [year, wk] = weekKey.split('-W').map(Number);
-    const jan1 = new Date(year, 0, 1);
-    const daysOffset = (wk - 1) * 7 - jan1.getDay() + 1;
-    const start = new Date(year, 0, daysOffset + 1);
+  // Monday–Sunday week containing `date`. The previous week-number math put
+  // today outside its own week on some weekends.
+  function getWeekRange(date = new Date()) {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - ((date.getDay() + 6) % 7));
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
     return {
@@ -242,8 +236,14 @@
 
   // ── Points realtime ────────────────────────────────────────
   let mirroredPoints = null;
+  // Latest users/{uid}, kept by the listener below so nothing else re-reads it.
+  let me = {};
+  let resolveMe;
+  const meReady = new Promise(r => { resolveMe = r; });
   onSnapshot(doc(db,'users',uid), snap => {
     const d = snap.data() || {};
+    me = d;
+    resolveMe();
     const points = d.points || 0;
     document.getElementById('myPoints').textContent = points.toLocaleString();
     document.getElementById('myPointsRank').textContent = points.toLocaleString() + ' ⭐';
@@ -291,8 +291,7 @@
 
   async function loadMissions() {
     const today = formatLocalDate(new Date());
-    const weekKey = getWeekKey();
-    const weekRange = getWeekRange(weekKey);
+    const weekRange = getWeekRange();
     const mSnap = await getDocs(collection(db,'missions'));
     const allowedTypes = new Set(['food','weight','health','photo','calorieGoal','exercise','sugar','pressure']);
     const missions = (mSnap.empty
@@ -301,6 +300,7 @@
       .filter(m => allowedTypes.has(m.type));
     missionsById = new Map(missions.map(m => [m.id, m]));
     const progress = await calculateMissionProgress(missions, today, weekRange);
+    missionProgress = progress;
 
     // Check completions based on resetType
     const dailyMissions = missions.filter(m => (m.condition?.resetType || m.resetType || 'daily') === 'daily');
@@ -308,34 +308,31 @@
     const dailyIds = new Set(dailyMissions.map(m => m.id));
     const weeklyIds = new Set(weeklyMissions.map(m => m.id));
 
-    const [dailyCSnap, weeklyCSnap] = await Promise.all([
-      getDocs(query(
-        collection(db,'missionCompletions'),
-        where('uid','==',uid),
-        where('date','==',today)
-      )),
-      getDocs(query(
-        collection(db,'missionCompletions'),
-        where('uid','==',uid),
-        where('date','>=',weekRange.start),
-        where('date','<=',weekRange.end)
-      ))
-    ]);
+    // today is inside this week, so the week's completions cover the daily check too
+    const weekCSnap = await getDocs(query(
+      collection(db,'missionCompletions'),
+      where('uid','==',uid),
+      where('date','>=',weekRange.start),
+      where('date','<=',weekRange.end)
+    ));
     const completed = new Set();
-    dailyCSnap.docs.forEach(d => { if (dailyIds.has(d.data().missionId)) completed.add(d.data().missionId); });
-    weeklyCSnap.docs.forEach(d => { if (weeklyIds.has(d.data().missionId)) completed.add(d.data().missionId); });
+    weekCSnap.docs.forEach(d => {
+      const { missionId, date } = d.data();
+      if (weeklyIds.has(missionId) || (dailyIds.has(missionId) && date === today)) completed.add(missionId);
+    });
+    completedMissions = completed;
     renderMissions(missions, completed, progress);
   }
 
   async function calculateMissionProgress(missions, today, weekRange) {
     // createdAt is a UTC ISO string; this is local midnight expressed in UTC
     const dayStart = new Date(`${today}T00:00:00`).toISOString();
-    const [foodSnap, healthSnap, bodyStatsSnap, exerciseSnap, userSnap] = await Promise.all([
+    const [foodSnap, healthSnap, bodyStatsSnap, exerciseSnap] = await Promise.all([
       getDocs(query(collection(db,'foodLogs'), where('uid','==',uid), where('date','==',today))),
       getDocs(query(collection(db,'healthLogs'), where('uid','==',uid), where('createdAt','>=',dayStart))),
       getDocs(query(collection(db,'bodyStats'), where('uid','==',uid), where('createdAt','>=',dayStart))),
       getDocs(query(collection(db,'exerciseLogs'), where('uid','==',uid), where('date','>=',weekRange.start), where('date','<=',weekRange.end))),
-      getDoc(doc(db,'users',uid))
+      meReady
     ]);
     const foods = foodSnap.docs.map(d=>({id:d.id,...d.data()}));
     const healthLogs = healthSnap.docs
@@ -347,7 +344,7 @@
     const exerciseLogs = exerciseSnap.docs.map(d=>({id:d.id,...d.data()}));
     const meals = new Set(foods.map(e => e.meal).filter(Boolean));
     const calorieTotal = foods.reduce((sum,e)=>sum+(Number(e.calories)||0),0);
-    const calorieGoal = Number(userSnap.data()?.calorieGoal) || 2000;
+    const calorieGoal = Number(me.calorieGoal) || 2000;
     const progress = new Map();
     missions.forEach(m => {
       const condition = m.condition || {};
@@ -420,12 +417,11 @@
     if (!mission) return alert('Mission not found');
     const points = Number(mission.points) || 0;
     const today = formatLocalDate(new Date());
-    const weekKey = getWeekKey();
-    const weekRange = getWeekRange(weekKey);
+    const weekRange = getWeekRange();
     const condition = mission.condition || {};
     const resetType = condition.resetType || mission.resetType || 'daily';
-    const progress = await calculateMissionProgress([mission], today, weekRange);
-    if (!progress.get(missionId)?.claimable) return alert('ยังทำภารกิจไม่ครบเงื่อนไข');
+    // progress was computed when the page loaded; recomputing it here cost ~5 queries per claim
+    if (!missionProgress.get(missionId)?.claimable) return alert('ยังทำภารกิจไม่ครบเงื่อนไข');
 
     // Check if already completed this period
     if (resetType === 'weekly') {
@@ -465,15 +461,18 @@
         balance: currentPoints + points
       });
     });
-    loadMissions();
+    completedMissions.add(missionId);
+    renderMissions([...missionsById.values()], completedMissions, missionProgress);
   };
 
   // ── Leaderboard ────────────────────────────────────────────
+  let leaderboardLoadedFor = null; // my points when it was last loaded
   async function loadLeaderboard() {
+    await meReady;
+    const myPoints = Number(me.points) || 0;
+    if (leaderboardLoadedFor === myPoints) return;
     document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-300 py-10 font-bold">กำลังโหลด...</p>';
     try {
-      const myUserSnap = await getDoc(doc(db, 'users', uid));
-      const myPoints = Number(myUserSnap.data()?.points) || 0;
       const q9 = query(
         collection(db,'leaderboard'),
         orderBy('points','desc'),
@@ -488,6 +487,7 @@
       const myRank = higherCount + 1;
       document.getElementById('myRank').textContent = myRank ? `# ${myRank}` : '# –';
       renderLeaderboard(top9, myRank, top9.length);
+      leaderboardLoadedFor = myPoints;
     } catch(err) {
       document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-300 py-10 font-bold">โหลดข้อมูลไม่สำเร็จ</p>';
       console.error('Leaderboard error:', err);
@@ -532,7 +532,9 @@
   }
 
   // ── Rewards ────────────────────────────────────────────────
+  let rewardsLoaded = false;
   async function loadRewards() {
+    if (rewardsLoaded) return;
     document.getElementById('rewardGrid').innerHTML = '<p class="col-span-2 text-center text-gray-300 py-8 font-bold">กำลังโหลด...</p>';
     const snap = await getDocs(collection(db, 'rewards'));
     const rewards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -544,10 +546,13 @@
           <button onclick="openShippingModal('${r.id}','${r.title}',${r.points})" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95 transition">แลก ${(r.points || 0).toLocaleString()} ⭐</button>
         </div>`).join('')
       : `<div class="col-span-2 text-center text-gray-300 py-6 border-2 border-dashed border-gray-200 rounded-3xl font-bold">ยังไม่มีของรางวัลในระบบ</div>`;
+    rewardsLoaded = true;
   }
 
   // ── Redemption history ─────────────────────────────────────
+  let historyLoaded = false; // reset after a redemption
   async function loadRedemptionHistory() {
+    if (historyLoaded) return;
     document.getElementById('redemptionHistory').innerHTML = '<p class="text-center text-gray-300 py-8 font-bold">กำลังโหลด...</p>';
     const snap = await getDocs(query(collection(db, 'redemptions'), where('uid', '==', uid)));
     const entries = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.redeemedAt || '').localeCompare(String(a.redeemedAt || '')));
@@ -560,11 +565,13 @@
           <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${e.cost || e.pointsCost} ⭐</p><p class="text-[10px] font-bold ${sC[e.status] || 'text-gray-400'}">${sL[e.status] || e.status}</p></div>
         </div>`).join('')
       : `<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติการแลก</p>`;
+    historyLoaded = true;
   }
 
   // ── Shipping Modal ─────────────────────────────────────────
   window.openShippingModal = async (rewardId, title, cost) => {
-    const pts = (await getDoc(doc(db, 'users', uid))).data()?.points || 0;
+    await meReady;
+    const pts = me.points || 0; // the redemption transaction re-checks this
     if (pts < cost) return alert(`แต้มไม่พอ (มี ${pts} แต้ม ต้องการ ${cost} แต้ม)`);
     currentRedeem = { rewardId, title, cost };
     document.getElementById('shippingModal').classList.remove('hidden');
@@ -608,6 +615,7 @@
       });
       closeShippingModal();
       alert('🎉 แลกของรางวัลสำเร็จ!');
+      historyLoaded = false;
       loadRedemptionHistory();
     } catch(e) {
       if (e.message === 'NOT_ENOUGH') return alert('แต้มไม่พอ');
