@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
-      theme: { extend: { fontSize: { '2xs': ['0.625rem', { lineHeight: '0.875rem' }] } } }
+      theme: { extend: { fontSize: { '2xs': ['0.75rem', { lineHeight: '1rem' }] } } }
     }
   </script>
   <style>
@@ -26,9 +26,11 @@
     .float-up { animation: floatUp .5s ease-out forwards; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner { animation: spin .8s linear infinite; }
-    .register-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: min(55dvh, 480px); }
+    /* The form is taller than the box on most phones. The native scrollbar only
+       appears mid-scroll on phones (and iOS ignores its styling), so #regTrack
+       draws one that is always visible; see syncRegScrollbar(). */
+    .register-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: min(55dvh, 480px); scrollbar-width: none; }
     .register-scroll::-webkit-scrollbar { display: none; }
-    .register-scroll { -ms-overflow-style: none; scrollbar-width: none; }
     input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     @supports (-webkit-touch-callout: none) { input { font-size: 16px !important; } }
     .login-container { width: 100%; max-width: 28rem; }
@@ -62,17 +64,20 @@
           <h2 class="text-white font-black text-lg sm:text-xl">📝 ลงทะเบียน</h2>
           <p class="text-white/45 text-2xs sm:text-xs mt-1">กรอกข้อมูลเพื่อเริ่มใช้งาน Heddee</p>
         </div>
-        <div class="register-scroll space-y-2.5 sm:space-y-3 pr-1 flex-1">
-          <div><label class="text-2xs sm:text-xs text-white/45 font-bold">ชื่อ - นามสกุล <span class="text-emerald-400">*</span></label><input id="regName" type="text" placeholder="เช่น สมชาย ใจดี" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
-          <div><label class="text-2xs sm:text-xs text-white/45 font-bold">เบอร์โทรศัพท์ <span class="text-emerald-400">*</span></label><input id="regPhone" type="tel" placeholder="0812345678" maxlength="10" inputmode="numeric" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
-          <div><label class="text-2xs sm:text-xs text-white/45 font-bold">วันเดือนปีเกิด <span class="text-emerald-400">*</span></label><input id="regBirthDate" type="date" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"><p id="birthDateHint" class="text-2xs sm:text-[10px] text-white/30 mt-1">เลือกวันเกิด (จะแสดงเป็น พ.ศ. อัตโนมัติ)</p></div>
-          <div><label class="text-2xs sm:text-xs text-white/45 font-bold">เพศ <span class="text-emerald-400">*</span></label><div class="mt-1 flex gap-3"><button id="genderMale" onclick="selectGender('male')" class="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white font-black text-sm transition-colors bg-white/15 border-emerald-400">👨 ชาย</button><button id="genderFemale" onclick="selectGender('female')" class="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white/50 font-black text-sm transition-colors">👩 หญิง</button></div></div>
+        <div class="relative flex-1 min-h-0">
+        <div id="regScroll" class="register-scroll space-y-2.5 sm:space-y-3 pr-4">
+          <div><label class="text-2xs sm:text-xs text-white/70 font-bold">ชื่อ - นามสกุล <span class="text-emerald-400">*</span></label><input id="regName" type="text" placeholder="เช่น สมชาย ใจดี" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
+          <div><label class="text-2xs sm:text-xs text-white/70 font-bold">เบอร์โทรศัพท์ <span class="text-emerald-400">*</span></label><input id="regPhone" type="tel" placeholder="0812345678" maxlength="10" inputmode="numeric" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
+          <div><label class="text-2xs sm:text-xs text-white/70 font-bold">วันเดือนปีเกิด <span class="text-emerald-400">*</span></label><input id="regBirthDate" type="date" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"><p id="birthDateHint" class="text-2xs sm:text-xs text-white/30 mt-1">เลือกวันเกิด (จะแสดงเป็น พ.ศ. อัตโนมัติ)</p></div>
+          <div><label class="text-2xs sm:text-xs text-white/70 font-bold">เพศ <span class="text-emerald-400">*</span></label><div class="mt-1 flex gap-3"><button id="genderMale" onclick="selectGender('male')" class="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white font-black text-sm transition-colors bg-white/15 border-emerald-400">👨 ชาย</button><button id="genderFemale" onclick="selectGender('female')" class="flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-white/20 text-white/50 font-black text-sm transition-colors">👩 หญิง</button></div></div>
           <div class="grid gap-2.5 sm:gap-3" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
-            <div><label class="text-2xs sm:text-xs text-white/45 font-bold">น้ำหนักปัจจุบัน (kg) <span class="text-emerald-400">*</span></label><input id="regWeight" type="number" placeholder="65" step="0.1" min="20" max="300" inputmode="decimal" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
-            <div><label class="text-2xs sm:text-xs text-white/45 font-bold">ส่วนสูงปัจจุบัน (cm) <span class="text-emerald-400">*</span></label><input id="regHeight" type="number" placeholder="170" step="0.1" min="50" max="250" inputmode="decimal" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
+            <div><label class="text-2xs sm:text-xs text-white/70 font-bold">น้ำหนักปัจจุบัน (kg) <span class="text-emerald-400">*</span></label><input id="regWeight" type="number" placeholder="65" step="0.1" min="20" max="300" inputmode="decimal" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
+            <div><label class="text-2xs sm:text-xs text-white/70 font-bold">ส่วนสูงปัจจุบัน (cm) <span class="text-emerald-400">*</span></label><input id="regHeight" type="number" placeholder="170" step="0.1" min="50" max="250" inputmode="decimal" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
           </div>
-          <div><label class="text-2xs sm:text-xs text-white/45 font-bold">อีเมล (ไม่จำเป็น)</label><input id="regEmail" type="email" placeholder="name@example.com" inputmode="email" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
+          <div><label class="text-2xs sm:text-xs text-white/70 font-bold">อีเมล (ไม่จำเป็น)</label><input id="regEmail" type="email" placeholder="name@example.com" inputmode="email" class="mt-1 w-full bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-white placeholder-white/40 text-sm transition-colors"></div>
           <div id="bmiPreview" class="hidden p-3 rounded-xl sm:rounded-2xl bg-white/10 text-center"><p class="text-white/60 text-2xs sm:text-xs">BMI ของคุณ</p><p id="bmiValue" class="text-xl sm:text-2xl font-black text-emerald-400 mt-1">–</p><p id="bmiLabel" class="text-2xs sm:text-xs text-white/50 mt-0.5">–</p></div>
+        </div>
+        <div id="regTrack" class="absolute top-0 bottom-0 right-0 w-1.5 rounded-full bg-white/10 pointer-events-none"><div id="regThumb" class="absolute left-0 right-0 rounded-full bg-emerald-400/80"></div></div>
         </div>
         <button id="btnRegister" class="btn-primary w-full mt-3 sm:mt-4 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl text-white font-black text-xs sm:text-sm shadow-lg flex-shrink-0">สร้างบัญชี</button>
       </div>
@@ -82,6 +87,27 @@
     <p class="text-center text-white/30 text-2xs sm:text-xs mt-4 sm:mt-6 pb-2">Heddee for LINE Web App</p>
   </div>
 
+  <script>
+    // Always-visible scrollbar for the registration form (see .register-scroll).
+    (() => {
+      const box = document.getElementById('regScroll');
+      const track = document.getElementById('regTrack');
+      const thumb = document.getElementById('regThumb');
+      const sync = () => {
+        const { scrollTop, scrollHeight, clientHeight } = box;
+        const scrollable = scrollHeight > clientHeight + 1;
+        track.style.display = scrollable ? '' : 'none';
+        if (!scrollable) return;
+        const h = Math.max(24, track.clientHeight * clientHeight / scrollHeight);
+        thumb.style.height = `${h}px`;
+        thumb.style.top = `${(track.clientHeight - h) * scrollTop / (scrollHeight - clientHeight)}px`;
+      };
+      box.addEventListener('scroll', sync, { passive: true });
+      // also fires when the hidden form is first shown, and when the BMI preview appears
+      new ResizeObserver(sync).observe(box);
+      [...box.children].forEach(el => new ResizeObserver(sync).observe(el));
+    })();
+  </script>
   <script type="module">
     // ════════════════════════════════════════════════════════════
     // Heddee Login Flow (v4 - LINE custom token)

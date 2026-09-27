@@ -88,9 +88,9 @@
             <p class="text-3xl font-black" id="todayCalories">0</p>
           </div>
           <div class="text-right">
-            <p class="text-[10px] font-bold opacity-70 uppercase">เป้าหมาย</p>
+            <p class="text-xs font-bold opacity-70 uppercase">เป้าหมาย</p>
             <p class="text-lg font-bold" id="calorieGoal">2,000 kcal</p>
-            <button onclick="editCalorieGoal()" class="mt-1 rounded-full bg-white/20 px-3 py-1 text-[11px] font-black hover:bg-white/30 active:scale-95 transition">แก้เป้าหมาย</button>
+            <button onclick="editCalorieGoal()" class="mt-1 min-h-[40px] rounded-full bg-white/20 px-4 py-2 text-xs font-black hover:bg-white/30 active:scale-95 transition">แก้เป้าหมาย</button>
           </div>
         </div>
         <div class="w-full bg-white/30 rounded-full h-2">
@@ -109,6 +109,15 @@
         </div>
         <span class="text-2xl opacity-50 flex-shrink-0">›</span>
       </button>
+      <button onclick="openCamera('manual')"
+        class="w-full flex items-center gap-4 bg-white border-2 border-teal-200 rounded-3xl p-4 text-teal-700 shadow-sm active:scale-[0.98] transition mb-4 hover:bg-teal-50">
+        <div class="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-3xl flex-shrink-0">✍️</div>
+        <div class="text-left flex-1 min-w-0">
+          <span class="font-black text-base block truncate">กรอกแคลอรี่เอง</span>
+          <span class="text-sm text-gray-500 block truncate">ไม่มีรูป? พิมพ์ชื่ออาหารและแคลอรี่ได้เลย</span>
+        </div>
+        <span class="text-2xl opacity-40 flex-shrink-0">›</span>
+      </button>
 
       <section id="calorieHistoryPanel" class="mb-6 rounded-3xl border border-teal-100 bg-white p-4 shadow-sm">
         <div class="flex items-center justify-between gap-3 mb-3">
@@ -117,8 +126,8 @@
             <h2 class="text-base font-black text-gray-800">สรุปแคลอรี่ย้อนหลัง</h2>
           </div>
           <div class="grid grid-cols-2 rounded-2xl bg-gray-100 p-1 text-xs font-black text-gray-500">
-            <button id="historyWeekBtn" onclick="setHistoryMode('week')" class="rounded-xl px-3 py-2 bg-white text-[#f49d0f] shadow-sm">สัปดาห์</button>
-            <button id="historyMonthBtn" onclick="setHistoryMode('month')" class="rounded-xl px-3 py-2">เดือน</button>
+            <button id="historyWeekBtn" onclick="setHistoryMode('week')" class="min-h-[44px] rounded-xl px-4 py-2 bg-white text-[#f49d0f] shadow-sm">สัปดาห์</button>
+            <button id="historyMonthBtn" onclick="setHistoryMode('month')" class="min-h-[44px] rounded-xl px-4 py-2">เดือน</button>
           </div>
         </div>
         <div id="historySummaryCards" class="grid grid-cols-3 gap-2 mb-3"></div>
@@ -159,7 +168,7 @@
   <div class="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col">
     <div class="bg-gradient-to-r from-teal-500 to-emerald-500 p-4 flex items-center gap-3 flex-shrink-0">
       <button onclick="closeCameraModal()" class="text-white/70 hover:text-white text-xl">✕</button>
-      <h2 class="text-white font-black text-lg flex-1 text-center">ถ่ายหรืออัปโหลดรูปอาหาร</h2>
+      <h2 id="cameraModalTitle" class="text-white font-black text-lg flex-1 text-center">ถ่ายหรืออัปโหลดรูปอาหาร</h2>
     </div>
     <div class="flex-1 overflow-y-auto hide-scrollbar">
       <!-- Two clear buttons: Camera / Gallery -->
@@ -168,13 +177,13 @@
              class="border-2 border-dashed border-teal-300 rounded-2xl p-5 text-center cursor-pointer hover:bg-teal-50 transition active:scale-[0.97]">
           <span class="text-4xl">📷</span>
           <p class="text-gray-600 font-black mt-1 text-sm">ถ่ายรูป</p>
-          <p class="text-[10px] text-gray-400">เปิดกล้อง</p>
+          <p class="text-xs text-gray-400">เปิดกล้อง</p>
         </div>
         <div onclick="document.getElementById('galleryInput').click()"
              class="border-2 border-dashed border-teal-300 rounded-2xl p-5 text-center cursor-pointer hover:bg-teal-50 transition active:scale-[0.97]">
           <span class="text-4xl">🖼️</span>
           <p class="text-gray-600 font-black mt-1 text-sm">เลือกรูป</p>
-          <p class="text-[10px] text-gray-400">จากแกลเลอรี</p>
+          <p class="text-xs text-gray-400">จากแกลเลอรี</p>
         </div>
       </div>
       <img id="previewImg" class="hidden w-full max-h-64 object-contain px-4" />
@@ -195,40 +204,40 @@
       <div id="analyzeResult" class="hidden px-4 pb-2 space-y-2">
         <div class="bg-gray-50 rounded-2xl p-3">
           <p class="text-xs text-gray-400 font-bold mb-1">ชื่ออาหาร (แก้ไขได้)</p>
-          <input id="foodName" class="w-full bg-transparent font-bold text-gray-800 text-sm outline-none border-b border-gray-200 pb-1">
+          <input id="foodName" placeholder="เช่น ข้าวมันไก่" class="w-full bg-transparent font-bold text-gray-800 text-sm outline-none border-b border-gray-200 pb-1">
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-orange-50 rounded-2xl p-3 text-center">
-            <p class="text-[10px] text-orange-400 font-bold mb-1">แคลอรี่</p>
-            <input id="foodCalories" type="number" class="w-full bg-transparent font-black text-orange-600 text-xl text-center outline-none">
-            <p class="text-[10px] text-orange-400">kcal</p>
+            <p class="text-xs text-orange-400 font-bold mb-1">แคลอรี่</p>
+            <input id="foodCalories" type="number" inputmode="numeric" placeholder="0" class="w-full bg-transparent font-black text-orange-600 text-xl text-center outline-none">
+            <p class="text-xs text-orange-400">kcal</p>
           </div>
           <div class="bg-blue-50 rounded-2xl p-3 text-center">
-            <p class="text-[10px] text-blue-400 font-bold mb-1">โปรตีน</p>
+            <p class="text-xs text-blue-400 font-bold mb-1">โปรตีน</p>
             <input id="foodProtein" type="number" class="w-full bg-transparent font-black text-blue-600 text-xl text-center outline-none">
-            <p class="text-[10px] text-blue-400">g</p>
+            <p class="text-xs text-blue-400">g</p>
           </div>
         </div>
         <div class="grid grid-cols-4 gap-2">
           <div class="bg-emerald-50 rounded-2xl p-2 text-center">
-            <p class="text-[10px] text-emerald-500 font-bold mb-1">คาร์โบไฮเดรต</p>
+            <p class="text-xs text-emerald-500 font-bold mb-1">คาร์โบไฮเดรต</p>
             <input id="foodCarbs" type="number" class="w-full bg-transparent font-black text-emerald-600 text-sm text-center outline-none">
-            <p class="text-[10px] text-emerald-400">g</p>
+            <p class="text-xs text-emerald-400">g</p>
           </div>
           <div class="bg-amber-50 rounded-2xl p-2 text-center">
-            <p class="text-[10px] text-amber-500 font-bold mb-1">ไขมัน</p>
+            <p class="text-xs text-amber-500 font-bold mb-1">ไขมัน</p>
             <input id="foodFat" type="number" class="w-full bg-transparent font-black text-amber-600 text-sm text-center outline-none">
-            <p class="text-[10px] text-amber-400">g</p>
+            <p class="text-xs text-amber-400">g</p>
           </div>
           <div class="bg-lime-50 rounded-2xl p-2 text-center">
-            <p class="text-[10px] text-lime-500 font-bold mb-1">ใยอาหาร</p>
+            <p class="text-xs text-lime-500 font-bold mb-1">ใยอาหาร</p>
             <input id="foodFiber" type="number" class="w-full bg-transparent font-black text-lime-600 text-sm text-center outline-none">
-            <p class="text-[10px] text-lime-400">g</p>
+            <p class="text-xs text-lime-400">g</p>
           </div>
           <div class="bg-rose-50 rounded-2xl p-2 text-center">
-            <p class="text-[10px] text-rose-500 font-bold mb-1">โซเดียม</p>
+            <p class="text-xs text-rose-500 font-bold mb-1">โซเดียม</p>
             <input id="foodSodium" type="number" class="w-full bg-transparent font-black text-rose-600 text-sm text-center outline-none">
-            <p class="text-[10px] text-rose-400">mg</p>
+            <p class="text-xs text-rose-400">mg</p>
           </div>
         </div>
         <p id="foodNote" class="text-xs text-gray-400 italic px-1"></p>
@@ -494,7 +503,7 @@
       items.forEach(e => {
         const encName = encodeURIComponent(e.name || '');
         const encNote = encodeURIComponent(e.note || '');
-        html += `<div class="bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm"><div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-lg flex-shrink-0">🍽️</div><div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(e.name)}</p><p class="text-xs text-gray-400">${e.calories || 0} kcal${e.protein ? ` · ${e.protein}g โปรตีน` : ''}</p><p class="text-[11px] text-gray-300">C ${e.carbs || 0}g · F ${e.fat || 0}g · Fiber ${e.fiber || 0}g · Na ${e.sodium || 0}mg</p>${e.note ? `<p class="text-[11px] text-gray-400 truncate">${escapeHtml(e.note)}</p>` : ''}</div><button onclick="editEntry('${e.id}','${encName}',${e.calories || 0},${e.carbs || 0},${e.protein || 0},${e.fat || 0},${e.fiber || 0},${e.sodium || 0},'${encNote}')" class="text-gray-300 hover:text-teal-500 transition text-sm font-black flex-shrink-0">แก้</button><button onclick="deleteEntry('${e.id}')" class="text-gray-300 hover:text-red-400 transition text-lg flex-shrink-0">🗑</button></div>`;
+        html += `<div class="bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm"><div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-lg flex-shrink-0">🍽️</div><div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(e.name)}</p><p class="text-xs text-gray-400">${e.calories || 0} kcal${e.protein ? ` · ${e.protein}g โปรตีน` : ''}</p><p class="text-xs text-gray-500">C ${e.carbs || 0}g · F ${e.fat || 0}g · Fiber ${e.fiber || 0}g · Na ${e.sodium || 0}mg</p>${e.note ? `<p class="text-xs text-gray-400 truncate">${escapeHtml(e.note)}</p>` : ''}</div><button onclick="editEntry('${e.id}','${encName}',${e.calories || 0},${e.carbs || 0},${e.protein || 0},${e.fat || 0},${e.fiber || 0},${e.sodium || 0},'${encNote}')" class="min-w-[44px] min-h-[44px] rounded-xl bg-teal-50 text-teal-600 hover:bg-teal-100 transition text-sm font-black flex-shrink-0">แก้</button><button onclick="deleteEntry('${e.id}')" aria-label="ลบ" class="min-w-[44px] min-h-[44px] rounded-xl bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-500 transition text-lg flex-shrink-0">🗑</button></div>`;
       });
       html += `</div></div>`;
     });
@@ -543,15 +552,28 @@
     } catch (err) { console.error(err); alert('แก้ไขไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'); }
   };
 
-  window.openCamera = () => {
+  // 'photo' goes through Gemini; 'manual' opens the same form empty, for when
+  // there is no photo or the analysis is unavailable.
+  let entryMode = 'photo';
+  window.openCamera = (mode = 'photo') => {
+    entryMode = mode;
+    const manual = mode === 'manual';
     document.getElementById('cameraModal').classList.remove('hidden');
+    document.getElementById('cameraModalTitle').textContent = manual ? 'กรอกแคลอรี่เอง' : 'ถ่ายหรืออัปโหลดรูปอาหาร';
     document.getElementById('previewImg').classList.add('hidden');
-    document.getElementById('uploadZone').classList.remove('hidden');
-    document.getElementById('analyzeResult').classList.add('hidden');
+    document.getElementById('uploadZone').classList.toggle('hidden', manual);
+    document.getElementById('analyzeResult').classList.toggle('hidden', !manual);
     document.getElementById('analyzeStatus').classList.add('hidden');
+    document.getElementById('analyzeBtn').classList.toggle('hidden', manual);
     document.getElementById('analyzeBtn').disabled = true;
-    document.getElementById('saveBtn').classList.add('hidden');
+    document.getElementById('saveBtn').classList.toggle('hidden', !manual);
     selectedFile = null; selectedB64 = null;
+    if (manual) {
+      ['foodName', 'foodCalories', 'foodProtein', 'foodCarbs', 'foodFat', 'foodFiber', 'foodSodium']
+        .forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('foodNote').textContent = '';
+      setTimeout(() => document.getElementById('foodName').focus(), 50);
+    }
   };
 
   window.closeCameraModal = () => { document.getElementById('cameraModal').classList.add('hidden'); };
@@ -664,10 +686,14 @@
     const sodium = Math.max(0, parseInt(document.getElementById('foodSodium').value) || 0);
     const note = document.getElementById('foodNote').textContent.trim();
     if (!name) return alert('กรุณาระบุชื่ออาหาร');
+    if (entryMode === 'manual' && document.getElementById('foodCalories').value.trim() === '') return alert('กรุณาระบุแคลอรี่');
     try {
       await addDoc(collection(db, 'foodLogs'), {
         uid, name, calories, carbs, protein, fat, fiber, sodium, note,
-        meal: selectedMeal, source: 'ai', analyzedBy: 'gemini', date: today,
+        meal: selectedMeal,
+        // only photo entries count toward the "ถ่ายรูปอาหาร" mission
+        ...(entryMode === 'manual' ? { source: 'manual' } : { source: 'ai', analyzedBy: 'gemini' }),
+        date: today,
         createdAt: new Date().toISOString()
       });
       closeCameraModal();
@@ -739,11 +765,11 @@
     historyMode = mode;
     selectedHistoryDate = today;
     document.getElementById('historyWeekBtn').className = mode === 'week'
-      ? 'rounded-xl px-3 py-2 bg-white text-teal-600 shadow-sm'
-      : 'rounded-xl px-3 py-2';
+      ? 'min-h-[44px] rounded-xl px-4 py-2 bg-white text-teal-600 shadow-sm'
+      : 'min-h-[44px] rounded-xl px-4 py-2';
     document.getElementById('historyMonthBtn').className = mode === 'month'
-      ? 'rounded-xl px-3 py-2 bg-white text-teal-600 shadow-sm'
-      : 'rounded-xl px-3 py-2';
+      ? 'min-h-[44px] rounded-xl px-4 py-2 bg-white text-teal-600 shadow-sm'
+      : 'min-h-[44px] rounded-xl px-4 py-2';
     renderCalorieHistory();
   };
 

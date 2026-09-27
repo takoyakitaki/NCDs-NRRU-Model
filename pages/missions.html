@@ -82,10 +82,10 @@
       </div>
       <!-- Tabs -->
       <div class="grid grid-cols-4 gap-1 bg-gray-100 rounded-2xl p-1">
-        <button id="tabMissions"    onclick="switchTab('missions')"    class="tab-active py-2 rounded-xl text-xs font-black transition">🏆 ภารกิจ</button>
-        <button id="tabLeaderboard" onclick="switchTab('leaderboard')" class="tab-inactive py-2 rounded-xl text-xs font-black transition">🏅 Ranking</button>
-        <button id="tabRewards"     onclick="switchTab('rewards')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">🎁 รางวัล</button>
-        <button id="tabHistory"     onclick="switchTab('history')"     class="tab-inactive py-2 rounded-xl text-xs font-black transition">📜 ประวัติ</button>
+        <button id="tabMissions"    onclick="switchTab('missions')"    class="tab-active min-h-[44px] py-2 rounded-xl text-xs font-black transition">🏆 ภารกิจ</button>
+        <button id="tabLeaderboard" onclick="switchTab('leaderboard')" class="tab-inactive min-h-[44px] py-2 rounded-xl text-xs font-black transition">🏅 Ranking</button>
+        <button id="tabRewards"     onclick="switchTab('rewards')"     class="tab-inactive min-h-[44px] py-2 rounded-xl text-xs font-black transition">🎁 รางวัล</button>
+        <button id="tabHistory"     onclick="switchTab('history')"     class="tab-inactive min-h-[44px] py-2 rounded-xl text-xs font-black transition">📜 ประวัติ</button>
       </div>
     </div>
 
@@ -174,15 +174,15 @@
   <!-- Bottom Nav (mobile + tablet) -->
   <nav id="mobileNav" class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/95 backdrop-blur border-t border-gray-100 flex items-center justify-around pb-safe z-50 shadow-2xl min-h-20">
     <a href="food.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center">
-      <span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
+      <span class="text-xl">🍱</span><span class="text-xs font-bold">อาหาร</span></a>
     <a href="exercise.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center">
-      <span class="text-xl">🏃</span><span class="text-[10px] font-bold">ออกกำลัง</span></a>
+      <span class="text-xl">🏃</span><span class="text-xs font-bold">ออกกำลัง</span></a>
     <a href="reminders.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center">
-      <span class="text-xl">⏰</span><span class="text-[10px] font-bold">เตือน</span></a>
+      <span class="text-xl">⏰</span><span class="text-xs font-bold">เตือน</span></a>
     <a href="missions.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-amber-500 flex-1 justify-center">
-      <span class="text-xl">🏆</span><span class="text-[10px] font-bold">ภารกิจ</span></a>
+      <span class="text-xl">🏆</span><span class="text-xs font-bold">ภารกิจ</span></a>
     <a href="profile.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center">
-      <span class="text-xl">👤</span><span class="text-[10px] font-bold">โปรไฟล์</span></a>
+      <span class="text-xl">👤</span><span class="text-xs font-bold">โปรไฟล์</span></a>
   </nav>
 
 </div>
@@ -285,7 +285,7 @@
       const panel = document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1));
       const btn   = document.getElementById('tab'   + t.charAt(0).toUpperCase() + t.slice(1));
       if (panel) panel.classList.toggle('hidden', t !== tab);
-      if (btn)   btn.className = `py-2 rounded-xl text-xs font-black transition ${t === tab ? 'tab-active' : 'tab-inactive'}`;
+      if (btn)   btn.className = `min-h-[44px] py-2 rounded-xl text-xs font-black transition ${t === tab ? 'tab-active' : 'tab-inactive'}`;
     });
     if (tab === 'leaderboard') loadLeaderboard();
     if (tab === 'rewards')     loadRewards();
@@ -408,14 +408,14 @@
           <p class="text-xs text-gray-400 mt-0.5 leading-snug">${escapeHtml(m.desc)}</p>
           <div class="flex items-center gap-1 mt-1">
             <span class="text-xs font-black" style="color: #fb7912;">+${Number(m.points)||0} แต้ม</span>
-            <span class="text-xs font-black text-gray-300">· ${p.detail}</span>
-            ${resetType === 'weekly' ? '<span class="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full">📆 รายสัปดาห์</span>' : ''}
+            <span class="text-xs font-black text-gray-500">· ${p.detail}</span>
+            ${resetType === 'weekly' ? '<span class="text-xs font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full">📆 รายสัปดาห์</span>' : ''}
           </div>
         </div>
         ${done
           ? `<span class="text-xs font-black text-green-500 flex-shrink-0">สำเร็จ ✓</span>`
           : `<button onclick="completeMission('${m.id}')" ${p.claimable ? '' : 'disabled'}
-              class="flex-shrink-0 ${p.claimable ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md active:scale-95' : 'bg-gray-100 text-gray-300'} font-black text-xs px-4 py-2 rounded-2xl transition">
+              class="flex-shrink-0 ${p.claimable ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md active:scale-95' : 'bg-gray-100 text-gray-300'} font-black text-sm min-h-[44px] px-4 py-2 rounded-2xl transition">
               รับแต้ม
             </button>`
         }
@@ -556,7 +556,7 @@
       ? rewards.map(r => `<div class="fade-in bg-white border border-gray-100 rounded-3xl p-4 shadow-sm flex flex-col items-center text-center">
           <div class="w-full aspect-square bg-amber-50 rounded-2xl flex items-center justify-center text-5xl mb-3">${escapeHtml(r.image || '🎁')}</div>
           <h4 class="font-black text-gray-800 text-xs mb-1 leading-tight">${escapeHtml(r.title)}</h4>
-          <p class="text-[10px] text-gray-400 mb-3">${escapeHtml(r.description)}</p>
+          <p class="text-xs text-gray-400 mb-3">${escapeHtml(r.description)}</p>
           <button data-reward-id="${escapeHtml(r.id)}" onclick="openShippingModal(this.dataset.rewardId)" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95 transition">แลก ${(Number(r.points) || 0).toLocaleString()} ⭐</button>
         </div>`).join('')
       : `<div class="col-span-2 text-center text-gray-300 py-6 border-2 border-dashed border-gray-200 rounded-3xl font-bold">ยังไม่มีของรางวัลในระบบ</div>`;
@@ -576,7 +576,7 @@
       ? entries.map(e => `<div class="fade-in bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
           <span class="text-2xl">🎁</span>
           <div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(e.title || e.rewardTitle)}</p><p class="text-xs text-gray-400">${new Date(e.redeemedAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})}</p></div>
-          <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${Number(e.cost || e.pointsCost) || 0} ⭐</p><p class="text-[10px] font-bold ${sC[e.status] || 'text-gray-400'}">${escapeHtml(sL[e.status] || e.status)}</p></div>
+          <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${Number(e.cost || e.pointsCost) || 0} ⭐</p><p class="text-xs font-bold ${sC[e.status] || 'text-gray-400'}">${escapeHtml(sL[e.status] || e.status)}</p></div>
         </div>`).join('')
       : `<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติการแลก</p>`;
     historyLoaded = true;

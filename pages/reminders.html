@@ -121,19 +121,19 @@
         </div>
         <div>
           <label class="text-xs text-gray-400 font-bold uppercase">เลือกวันแจ้งเตือน</label>
-          <p class="text-[10px] text-gray-500 mt-1">เลือกได้ทั้ง 7 วัน จากนั้นระบบจะเตือนตามเวลาที่ตั้งไว้</p>
+          <p class="text-xs text-gray-500 mt-1">เลือกได้ทั้ง 7 วัน จากนั้นระบบจะเตือนตามเวลาที่ตั้งไว้</p>
           <div class="grid grid-cols-7 gap-1 mt-3">
-            <button type="button" onclick="toggleRepeatDay(0)" id="weekdayBtn0" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">อา</button>
-            <button type="button" onclick="toggleRepeatDay(1)" id="weekdayBtn1" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">จ</button>
-            <button type="button" onclick="toggleRepeatDay(2)" id="weekdayBtn2" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">อ</button>
-            <button type="button" onclick="toggleRepeatDay(3)" id="weekdayBtn3" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">พ</button>
-            <button type="button" onclick="toggleRepeatDay(4)" id="weekdayBtn4" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">พฤ</button>
-            <button type="button" onclick="toggleRepeatDay(5)" id="weekdayBtn5" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">ศ</button>
-            <button type="button" onclick="toggleRepeatDay(6)" id="weekdayBtn6" class="rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">ส</button>
+            <button type="button" onclick="toggleRepeatDay(0)" id="weekdayBtn0" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">อา</button>
+            <button type="button" onclick="toggleRepeatDay(1)" id="weekdayBtn1" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">จ</button>
+            <button type="button" onclick="toggleRepeatDay(2)" id="weekdayBtn2" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">อ</button>
+            <button type="button" onclick="toggleRepeatDay(3)" id="weekdayBtn3" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">พ</button>
+            <button type="button" onclick="toggleRepeatDay(4)" id="weekdayBtn4" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">พฤ</button>
+            <button type="button" onclick="toggleRepeatDay(5)" id="weekdayBtn5" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">ศ</button>
+            <button type="button" onclick="toggleRepeatDay(6)" id="weekdayBtn6" class="min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition">ส</button>
           </div>
           <div class="flex gap-2 mt-3">
-            <button type="button" onclick="selectAllDays()" class="flex-1 rounded-2xl px-3 py-2 text-xs font-black text-white bg-gradient-to-r from-orange-500 to-orange-600">ทุกวัน</button>
-            <button type="button" onclick="clearSelectedDays()" class="flex-1 rounded-2xl px-3 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200">ไม่เลือกวัน</button>
+            <button type="button" onclick="selectAllDays()" class="flex-1 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-black text-white bg-gradient-to-r from-orange-500 to-orange-600">ทุกวัน</button>
+            <button type="button" onclick="clearSelectedDays()" class="flex-1 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-black text-gray-500 bg-gray-100 hover:bg-gray-200">ไม่เลือกวัน</button>
           </div>
         </div>
       </div>
@@ -174,11 +174,11 @@
      lg:hidden
      bg-white/95 backdrop-blur border-t border-gray-100
      flex items-center justify-around pb-safe shadow-2xl">
-  <a href="food.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
-  <a href="exercise.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏃</span><span class="text-[10px] font-bold">ออกกำลัง</span></a>
-  <a href="reminders.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-teal-500 hover:bg-teal-50 transition"><span class="text-xl">⏰</span><span class="text-[10px] font-bold">เตือน</span></a>
-  <a href="missions.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏆</span><span class="text-[10px] font-bold">ภารกิจ</span></a>
-  <a href="profile.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">👤</span><span class="text-[10px] font-bold">โปรไฟล์</span></a>
+  <a href="food.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🍱</span><span class="text-xs font-bold">อาหาร</span></a>
+  <a href="exercise.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏃</span><span class="text-xs font-bold">ออกกำลัง</span></a>
+  <a href="reminders.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-teal-500 hover:bg-teal-50 transition"><span class="text-xl">⏰</span><span class="text-xs font-bold">เตือน</span></a>
+  <a href="missions.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">🏆</span><span class="text-xs font-bold">ภารกิจ</span></a>
+  <a href="profile.html" class="flex flex-col items-center py-3 px-4 gap-1 flex-1 justify-center text-gray-400 hover:bg-teal-50 transition"><span class="text-xl">👤</span><span class="text-xs font-bold">โปรไฟล์</span></a>
 </nav>
 
 <script type="module">
@@ -282,16 +282,16 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
             <p class="font-black text-gray-800 text-sm truncate">${escapeHtml(item.title)}</p>
-            <span class="text-[10px] font-bold ${isOverdue ? 'text-red-500 bg-red-100' : 'text-teal-600 bg-teal-50'} px-2 py-0.5 rounded-full">${isOverdue ? 'เลยเวลา' : typeLabel}</span>
+            <span class="text-xs font-bold ${isOverdue ? 'text-red-500 bg-red-100' : 'text-teal-600 bg-teal-50'} px-2 py-0.5 rounded-full">${isOverdue ? 'เลยเวลา' : typeLabel}</span>
           </div>
           <p class="text-xs text-gray-400 mt-0.5">${dateText}</p>
-          ${repeatText ? `<p class="text-[10px] text-orange-600 font-black mt-1">${escapeHtml(repeatText)}</p>` : ''}
-          ${item.note ? `<p class="text-[11px] text-gray-400 truncate mt-0.5">${escapeHtml(item.note)}</p>` : ''}
+          ${repeatText ? `<p class="text-xs text-orange-600 font-black mt-1">${escapeHtml(repeatText)}</p>` : ''}
+          ${item.note ? `<p class="text-xs text-gray-400 truncate mt-0.5">${escapeHtml(item.note)}</p>` : ''}
         </div>
         ${item.status === 'done'
           ? `<span class="text-xs font-black text-green-500 flex-shrink-0">เสร็จแล้ว</span>`
-          : `<button onclick="completeReminder('${item.id}')" class="text-green-500 text-xs font-black flex-shrink-0">เสร็จ</button>`}
-        <button onclick="deleteReminder('${item.id}')" class="text-gray-300 hover:text-red-400 text-lg flex-shrink-0">🗑</button>
+          : `<button onclick="completeReminder('${item.id}')" class="min-h-[44px] px-4 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition text-sm font-black flex-shrink-0">เสร็จ</button>`}
+        <button onclick="deleteReminder('${item.id}')" aria-label="ลบ" class="min-w-[44px] min-h-[44px] rounded-xl bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-500 transition text-lg flex-shrink-0">🗑</button>
       </div>`;
     }).join('');
   };
@@ -320,7 +320,9 @@
       const day = next.getDay();
       if (candidates.includes(day)) {
         next.setHours(nextTime.h, nextTime.m, 0, 0);
-        return next.toISOString().slice(0,19);
+        // local wall-clock time, same shape as the form writes (YYYY-MM-DDTHH:mm:00).
+        // toISOString() is UTC; with its Z dropped it read back 7 hours early in Thailand.
+        return formatLocalDateTime(next);
       }
       next.setDate(next.getDate() + 1);
     }
@@ -332,9 +334,9 @@
       const button = document.getElementById(`weekdayBtn${i}`);
       if (!button) continue;
       if (selectedRepeatDays.includes(i)) {
-        button.className = 'rounded-2xl px-2 py-2 text-[10px] font-black text-white bg-gradient-to-r from-orange-500 to-orange-600';
+        button.className = 'min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-white bg-gradient-to-r from-orange-500 to-orange-600';
       } else {
-        button.className = 'rounded-2xl px-2 py-2 text-[10px] font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition';
+        button.className = 'min-h-[44px] rounded-2xl px-2 py-2 text-xs font-black text-gray-500 bg-gray-100 hover:bg-gray-200 transition';
       }
     }
   }
@@ -456,6 +458,12 @@
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  function formatLocalDateTime(date) {
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${formatLocalDate(date)}T${h}:${min}:00`;
   }
 </script>
   <script src="/lib/debug.js"></script>

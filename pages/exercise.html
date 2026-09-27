@@ -105,7 +105,7 @@
       <!-- Today's exercise calorie summary -->
       <div class="mt-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-4 text-white relative overflow-hidden">
         <div class="absolute top-3 right-3 flex gap-1">
-          <button onclick="openExerciseHistory()" class="bg-white/20 hover:bg-white/30 rounded-full px-2 py-1 text-[10px] font-black">📅 ประวัติ</button>
+          <button onclick="openExerciseHistory()" class="min-h-[40px] bg-white/20 hover:bg-white/30 rounded-full px-4 py-2 text-xs font-black">📅 ประวัติ</button>
         </div>
         <div class="flex justify-between items-end mb-2">
           <div>
@@ -207,11 +207,11 @@
 
 <!-- Bottom Nav (mobile + tablet) -->
 <nav id="mobileNav" class="fixed bottom-0 left-0 right-0 lg:hidden bg-white/95 backdrop-blur border-t border-gray-100 flex items-center justify-around pb-safe z-50 shadow-2xl" style="min-height:calc(3.5rem + max(0.5rem, env(safe-area-inset-bottom, 0px)))">
-  <a href="food.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">🍱</span><span class="text-[10px] font-bold">อาหาร</span></a>
-  <a href="exercise.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-orange-500 flex-1 justify-center"><span class="text-xl">🏃</span><span class="text-[10px] font-bold">ออกกำลัง</span></a>
-  <a href="reminders.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">⏰</span><span class="text-[10px] font-bold">เตือน</span></a>
-  <a href="missions.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">🏆</span><span class="text-[10px] font-bold">ภารกิจ</span></a>
-  <a href="profile.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">👤</span><span class="text-[10px] font-bold">โปรไฟล์</span></a>
+  <a href="food.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">🍱</span><span class="text-xs font-bold">อาหาร</span></a>
+  <a href="exercise.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-orange-500 flex-1 justify-center"><span class="text-xl">🏃</span><span class="text-xs font-bold">ออกกำลัง</span></a>
+  <a href="reminders.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">⏰</span><span class="text-xs font-bold">เตือน</span></a>
+  <a href="missions.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">🏆</span><span class="text-xs font-bold">ภารกิจ</span></a>
+  <a href="profile.html" class="flex flex-col items-center py-2 px-2 gap-0.5 text-gray-400 flex-1 justify-center"><span class="text-xl">👤</span><span class="text-xs font-bold">โปรไฟล์</span></a>
 </nav>
 
 <!-- Exercise History Modal -->
@@ -470,7 +470,7 @@
     const container = document.getElementById('categoryPills');
     container.innerHTML = EXERCISE_CATEGORIES.map(cat => `
       <button onclick="selectCategory(${cat.category_id})" data-cat-id="${cat.category_id}"
-        class="cat-btn flex-shrink-0 px-4 py-2 rounded-full text-xs font-black transition whitespace-nowrap
+        class="cat-btn flex-shrink-0 min-h-[44px] px-4 py-2 rounded-full text-xs font-black transition whitespace-nowrap
           ${cat.category_id === selectedCategoryId
             ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}">
@@ -489,7 +489,7 @@
     document.querySelectorAll('.cat-btn').forEach(btn => {
       const btnCatId = parseInt(btn.dataset.catId, 10);
       const isActive = btnCatId === catId;
-      btn.className = `cat-btn flex-shrink-0 px-4 py-2 rounded-full text-xs font-black transition whitespace-nowrap ${
+      btn.className = `cat-btn flex-shrink-0 min-h-[44px] px-4 py-2 rounded-full text-xs font-black transition whitespace-nowrap ${
         isActive
           ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -689,7 +689,7 @@
             ${e.categoryNameTh ? `· ${e.categoryNameTh}` : ''}
           </p>
         </div>
-        <button onclick="deleteExerciseEntry('${e.id}')" class="text-gray-300 hover:text-red-400 transition text-lg flex-shrink-0">🗑</button>
+        <button onclick="deleteExerciseEntry('${e.id}')" aria-label="ลบ" class="min-w-[44px] min-h-[44px] rounded-xl bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-500 transition text-lg flex-shrink-0">🗑</button>
       </div>
     `).join('');
   }
