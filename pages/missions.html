@@ -216,6 +216,18 @@
     };
   }
 
+  // Leaderboard names and avatars are typed by other users: never put them in HTML raw.
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+  // An <img> for a LINE (https) or uploaded (data:image) avatar, a short emoji
+  // avatar as text, else the fallback. Anything else (javascript: …) is dropped.
+  function avatarHtml(url, fallback) {
+    url = String(url || '');
+    if (/^(https?:\/\/|data:image\/)/.test(url)) return `<img src="${escapeHtml(url)}" class="w-full h-full object-cover">`;
+    return escapeHtml(url && url.length <= 8 ? url : fallback);
+  }
+
   function formatLocalDate(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -390,12 +402,12 @@
       const resetType = condition.resetType || m.resetType || 'daily';
       const p = progress.get(m.id) || { value:0, target:Number(m.target)||1, claimable:false, detail:`0 / ${m.target||1}` };
       return `<div class="fade-in bg-white border ${done?'border-green-200 bg-green-50':'border-gray-100'} rounded-3xl p-4 shadow-sm flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl ${done?'bg-green-100':'bg-amber-50'} flex items-center justify-center text-3xl flex-shrink-0">${done?'✅':m.icon}</div>
+        <div class="w-14 h-14 rounded-2xl ${done?'bg-green-100':'bg-amber-50'} flex items-center justify-center text-3xl flex-shrink-0">${done?'✅':escapeHtml(m.icon)}</div>
         <div class="flex-1 min-w-0">
-          <p class="font-black text-gray-800 text-base">${m.title}</p>
-          <p class="text-xs text-gray-400 mt-0.5 leading-snug">${m.desc}</p>
+          <p class="font-black text-gray-800 text-base">${escapeHtml(m.title)}</p>
+          <p class="text-xs text-gray-400 mt-0.5 leading-snug">${escapeHtml(m.desc)}</p>
           <div class="flex items-center gap-1 mt-1">
-            <span class="text-xs font-black" style="color: #fb7912;">+${m.points} แต้ม</span>
+            <span class="text-xs font-black" style="color: #fb7912;">+${Number(m.points)||0} แต้ม</span>
             <span class="text-xs font-black text-gray-300">· ${p.detail}</span>
             ${resetType === 'weekly' ? '<span class="text-[10px] font-bold text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-full">📆 รายสัปดาห์</span>' : ''}
           </div>
@@ -506,12 +518,12 @@
       return `<div class="fade-in flex items-center gap-3 ${isMe?'bg-amber-50 border border-amber-200':'bg-white border border-gray-100'} rounded-2xl p-3 shadow-sm">
         <span class="text-xl w-8 text-center flex-shrink-0">${medals[i] || `${i+1}`}</span>
         <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-          ${e.avatar?.startsWith('http') ? `<img src="${e.avatar}" class="w-full h-full object-cover">` : (e.avatar||'👦🏻')}
+          ${avatarHtml(e.avatar, '👦🏻')}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-black text-gray-800 text-sm truncate">${e.displayName||'ผู้ใช้'}${isMe?' (คุณ)':''}</p>
+          <p class="font-black text-gray-800 text-sm truncate">${escapeHtml(e.displayName||'ผู้ใช้')}${isMe?' (คุณ)':''}</p>
         </div>
-        <p class="font-black text-yellow-600 flex-shrink-0">⭐ ${(e.points||0).toLocaleString()}</p>
+        <p class="font-black text-yellow-600 flex-shrink-0">⭐ ${(Number(e.points)||0).toLocaleString()}</p>
       </div>`;
     }).join('');
 
@@ -520,10 +532,10 @@
       html += `<div class="fade-in flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-2xl p-3 shadow-sm">
         <span class="text-sm font-black text-gray-500 w-8 text-center flex-shrink-0">#${myRank}</span>
         <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-          ${session.avatar?.startsWith('http') ? `<img src="${session.avatar}" class="w-full h-full object-cover">` : '👤'}
+          ${avatarHtml(session.avatar, '👤')}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-black text-gray-800 text-sm truncate">${session.displayName||'คุณ'} (คุณ)</p>
+          <p class="font-black text-gray-800 text-sm truncate">${escapeHtml(session.displayName||'คุณ')} (คุณ)</p>
           <p class="text-xs text-gray-400">อีก ${myRank - 9} อันดับถึง Top 9</p>
         </div>
       </div>`;
@@ -533,17 +545,19 @@
 
   // ── Rewards ────────────────────────────────────────────────
   let rewardsLoaded = false;
+  let rewardsById = new Map();
   async function loadRewards() {
     if (rewardsLoaded) return;
     document.getElementById('rewardGrid').innerHTML = '<p class="col-span-2 text-center text-gray-300 py-8 font-bold">กำลังโหลด...</p>';
     const snap = await getDocs(collection(db, 'rewards'));
     const rewards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rewardsById = new Map(rewards.map(r => [r.id, r]));
     document.getElementById('rewardGrid').innerHTML = rewards.length
       ? rewards.map(r => `<div class="fade-in bg-white border border-gray-100 rounded-3xl p-4 shadow-sm flex flex-col items-center text-center">
-          <div class="w-full aspect-square bg-amber-50 rounded-2xl flex items-center justify-center text-5xl mb-3">${r.image || '🎁'}</div>
-          <h4 class="font-black text-gray-800 text-xs mb-1 leading-tight">${r.title}</h4>
-          <p class="text-[10px] text-gray-400 mb-3">${r.description || ''}</p>
-          <button onclick="openShippingModal('${r.id}','${r.title}',${r.points})" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95 transition">แลก ${(r.points || 0).toLocaleString()} ⭐</button>
+          <div class="w-full aspect-square bg-amber-50 rounded-2xl flex items-center justify-center text-5xl mb-3">${escapeHtml(r.image || '🎁')}</div>
+          <h4 class="font-black text-gray-800 text-xs mb-1 leading-tight">${escapeHtml(r.title)}</h4>
+          <p class="text-[10px] text-gray-400 mb-3">${escapeHtml(r.description)}</p>
+          <button data-reward-id="${escapeHtml(r.id)}" onclick="openShippingModal(this.dataset.rewardId)" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-2.5 rounded-xl text-xs shadow active:scale-95 transition">แลก ${(Number(r.points) || 0).toLocaleString()} ⭐</button>
         </div>`).join('')
       : `<div class="col-span-2 text-center text-gray-300 py-6 border-2 border-dashed border-gray-200 rounded-3xl font-bold">ยังไม่มีของรางวัลในระบบ</div>`;
     rewardsLoaded = true;
@@ -561,15 +575,19 @@
     document.getElementById('redemptionHistory').innerHTML = entries.length
       ? entries.map(e => `<div class="fade-in bg-white border border-gray-100 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
           <span class="text-2xl">🎁</span>
-          <div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${e.title || e.rewardTitle}</p><p class="text-xs text-gray-400">${new Date(e.redeemedAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})}</p></div>
-          <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${e.cost || e.pointsCost} ⭐</p><p class="text-[10px] font-bold ${sC[e.status] || 'text-gray-400'}">${sL[e.status] || e.status}</p></div>
+          <div class="flex-1 min-w-0"><p class="font-bold text-gray-800 text-sm truncate">${escapeHtml(e.title || e.rewardTitle)}</p><p class="text-xs text-gray-400">${new Date(e.redeemedAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'})}</p></div>
+          <div class="text-right flex-shrink-0"><p class="text-xs font-black text-red-400">-${Number(e.cost || e.pointsCost) || 0} ⭐</p><p class="text-[10px] font-bold ${sC[e.status] || 'text-gray-400'}">${escapeHtml(sL[e.status] || e.status)}</p></div>
         </div>`).join('')
       : `<p class="text-center text-gray-300 py-6 font-bold text-sm">ยังไม่มีประวัติการแลก</p>`;
     historyLoaded = true;
   }
 
   // ── Shipping Modal ─────────────────────────────────────────
-  window.openShippingModal = async (rewardId, title, cost) => {
+  window.openShippingModal = async (rewardId) => {
+    const reward = rewardsById.get(rewardId);
+    if (!reward) return;
+    const title = reward.title || '';
+    const cost = Number(reward.points) || 0;
     await meReady;
     const pts = me.points || 0; // the redemption transaction re-checks this
     if (pts < cost) return alert(`แต้มไม่พอ (มี ${pts} แต้ม ต้องการ ${cost} แต้ม)`);

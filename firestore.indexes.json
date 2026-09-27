@@ -115,6 +115,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "foodLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "calories",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

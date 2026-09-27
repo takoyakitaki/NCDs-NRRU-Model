@@ -159,7 +159,9 @@ const keyHint =
     ? 'FIREBASE_PRIVATE_KEY has no -----BEGIN PRIVATE KEY----- line; copy the whole private_key value, header and footer included'
     : keyProblem;
 
-export function firebaseCustomToken(uid) {
+// lineUid rides along as a custom claim (request.auth.token.lineUid), so the
+// rules can insist that users/{uid}.lineUid is the LINE account that signed in.
+export function firebaseCustomToken(uid, lineUid) {
   const now = Math.floor(Date.now() / 1000);
   return signJwt({
     iss: CLIENT_EMAIL,
@@ -168,6 +170,7 @@ export function firebaseCustomToken(uid) {
     iat: now,
     exp: now + 3600,
     uid,
+    ...(lineUid ? { claims: { lineUid } } : {}),
   });
 }
 
@@ -214,7 +217,7 @@ export default async function handler(req, res) {
     const uid = existing || `line_${lineUid}`;
 
     step = 'mint the custom token';
-    const token = firebaseCustomToken(uid);
+    const token = firebaseCustomToken(uid, lineUid);
 
     return res.status(200).json({ token, uid, isNew: !existing });
   } catch (error) {

@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import {
   doc, getDoc, setDoc, updateDoc, deleteDoc,
   collection, getDocs, query, where,
+  getAggregateFromServer, count, sum,
 } from 'firebase/firestore';
 
 const ADMIN_UID = 'PJWosepqPObqnE1geMWz5k6qEmy2';
@@ -71,7 +72,16 @@ await assertSucceeds(getDoc(doc(alice, 'missions', 'm1')));
 // login.html writes users/{auth.currentUser.uid} and an opening bodyStats
 // row, for a uid that has no document yet.
 const NEWBIE = 'line_Unewbie';
-const newbie = env.authenticatedContext(NEWBIE).firestore();
+// /api/line-auth puts the LINE user id in the token as a custom claim
+const newbie = env.authenticatedContext(NEWBIE, { lineUid: 'Unewbie' }).firestore();
+
+// registering with somebody else's LINE id is refused
+await assertFails(
+  setDoc(doc(newbie, 'users', NEWBIE), { uid: NEWBIE, lineUid: 'Ualice', displayName: 'Newbie' })
+);
+await assertFails(
+  setDoc(doc(newbie, 'users', NEWBIE), { uid: NEWBIE, lineUid: 'Unewbie', lineUserId: 'Ualice' })
+);
 
 await assertSucceeds(
   setDoc(doc(newbie, 'users', NEWBIE), {
@@ -91,6 +101,20 @@ await assertFails(setDoc(doc(newbie, 'users', ALICE), { uid: ALICE, displayName:
 await assertFails(setDoc(doc(newbie, 'users', 'line_Usomeoneelse'), { uid: 'line_Usomeoneelse' }));
 await assertFails(getDoc(doc(newbie, 'users', ALICE)));
 
+// ── the LINE link is fixed once registered ───────────────────
+// otherwise a player could re-point pushes (and sign-ins) at another account
+await assertFails(updateDoc(doc(newbie, 'users', NEWBIE), { lineUid: 'Ualice' }));
+await assertFails(updateDoc(doc(newbie, 'users', NEWBIE), { lineUserId: 'Ualice' }));
+await assertFails(updateDoc(doc(newbie, 'users', NEWBIE), { uid: ALICE }));
+await assertSucceeds(updateDoc(doc(newbie, 'users', NEWBIE), { displayName: 'Renamed', lineUid: 'Unewbie' }));
+await assertSucceeds(updateDoc(doc(admin, 'users', NEWBIE), { lineUid: 'Ufixedbyadmin' }));
+
+// ── admin settings ───────────────────────────────────────────
+await assertSucceeds(setDoc(doc(admin, 'systemSettings', 'appConfig'), { lineNotifyEnabled: true }));
+await assertSucceeds(getDoc(doc(admin, 'systemSettings', 'appConfig')));
+await assertFails(setDoc(doc(alice, 'systemSettings', 'appConfig'), { lineNotifyEnabled: false }));
+await assertFails(getDoc(doc(alice, 'systemSettings', 'appConfig')));
+
 // ── ranking works without exposing users/ ────────────────────
 await assertSucceeds(getDocs(collection(mallory, 'leaderboard')));
 await assertSucceeds(setDoc(doc(alice, 'leaderboard', ALICE), { uid: ALICE, points: 60 }));
@@ -103,6 +127,13 @@ await assertFails(setDoc(doc(alice, 'rewards', 'r1'), { title: 'free stuff', poi
 // ── admin keeps working ──────────────────────────────────────
 await assertSucceeds(getDocs(collection(admin, 'users')));
 await assertSucceeds(getDocs(collection(admin, 'healthLogs')));
+// the dashboard's tiles and chart are server-side aggregates
+const usersAgg = await assertSucceeds(getAggregateFromServer(collection(admin, 'users'), { n: count(), points: sum('points') }));
+assert.ok(usersAgg.data().n >= 2 && usersAgg.data().points >= 60, 'users count/points aggregate');
+await assertSucceeds(getAggregateFromServer(
+  query(collection(admin, 'foodLogs'), where('date', '==', '2026-09-20')), { calories: sum('calories'), entries: count() }
+));
+await assertFails(getAggregateFromServer(collection(alice, 'users'), { n: count() }));
 await assertSucceeds(updateDoc(doc(admin, 'users', ALICE), { points: 70 }));
 await assertSucceeds(setDoc(doc(admin, 'missions', 'm3'), { title: 'admin made', active: true }));
 await assertSucceeds(deleteDoc(doc(admin, 'healthLogs', 'h1')));

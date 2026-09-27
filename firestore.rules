@@ -41,11 +41,24 @@ service cloud.firestore {
     }
 
     // Phone number, birth date, body measurements — owner and admin only.
+    //
+    // lineUid decides who /api/line-auth signs in as this document and where
+    // /api/send-line-message pushes to, so a player must not be able to point
+    // it at someone else's LINE account. At registration it has to match the
+    // LINE account in the sign-in token; after that only an admin can change it.
     match /users/{userId} {
       allow read:   if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn() && request.auth.uid == userId
+                    && request.resource.data.get('lineUid', null) == request.auth.token.get('lineUid', null)
+                    && !('lineUserId' in request.resource.data);
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lineUid', 'lineUserId', 'uid']));
       allow delete: if isAdmin();
+    }
+
+    // Admin panel settings.
+    match /systemSettings/{docId} {
+      allow read, write: if isAdmin();
     }
 
     // Public projection of users/: display name, avatar and points, nothing

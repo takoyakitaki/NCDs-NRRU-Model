@@ -411,15 +411,38 @@
   });
 
   // เปลี่ยนรูปอวตาร์
+  // A phone photo is several MB — over Firestore's 1 MB document limit, and it
+  // gets copied into leaderboard/ for everyone to download. 256px JPEG is ~20 KB.
+  function avatarDataUrl(file, size = 256) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Cannot load image')); };
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, size / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = url;
+    });
+  }
+
   window.onAvatarSelected = async (e) => {
     const file = e.target.files[0];
+    e.target.value = ''; // picking the same file again should still fire
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      await updateDoc(doc(db, 'users', uid), { avatar: ev.target.result });
-      saveSession({ ...session, avatar: ev.target.result });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const avatar = await avatarDataUrl(file);
+      await updateDoc(doc(db, 'users', uid), { avatar });
+      saveSession({ ...session, avatar });
+    } catch (err) {
+      console.error('Avatar update failed:', err);
+      alert('เปลี่ยนรูปโปรไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    }
   };
 
   // Body Statistics toggle

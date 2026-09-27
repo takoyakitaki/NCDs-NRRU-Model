@@ -27,7 +27,7 @@ for (const [shape, value] of [['escaped (what Vercel holds)', escaped], ['real n
   // the module reads the key once at import, so each shape needs a fresh copy
   const { firebaseCustomToken } = await import(`./api/line-auth.js?case=${run++}`);
 
-  const token = firebaseCustomToken('line_U0123456789');
+  const token = firebaseCustomToken('line_U0123456789', 'U0123456789');
   const [header, payload, signature] = token.split('.');
   assert.equal(token.split('.').length, 3, `${shape}: a JWT has three parts`);
 
@@ -41,6 +41,7 @@ for (const [shape, value] of [['escaped (what Vercel holds)', escaped], ['real n
 
   const claims = JSON.parse(Buffer.from(payload, 'base64url'));
   assert.equal(claims.uid, 'line_U0123456789', `${shape}: uid is what the client signs in as`);
+  assert.equal(claims.claims?.lineUid, 'U0123456789', `${shape}: rules read request.auth.token.lineUid`);
   assert.equal(claims.iss, process.env.FIREBASE_CLIENT_EMAIL, `${shape}: iss`);
   assert.equal(claims.sub, process.env.FIREBASE_CLIENT_EMAIL, `${shape}: iss and sub are both the service account`);
   assert.equal(
